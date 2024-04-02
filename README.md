@@ -9,7 +9,7 @@
 
 - 👯 I’m looking to collaborate on **UI/UX Prototypes/Business Analytics**
 
-- 👨‍💻 All of my projects are available at [hibbs.design](hibbs.design)
+- 👨‍💻 All of my projects are available at https://hibbs.design/
 
 - 💬 Ask me about **Design Processes, Data Analyzation for Benefits, & my dog!**
 
