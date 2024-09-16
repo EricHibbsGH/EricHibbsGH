@@ -13,7 +13,7 @@
 
 - 💬 Ask me about **Design Processes, Data Analyzation for Benefits, & my dog!**
 
-- 📄 Know about my experiences [https://drive.google.com/file/d/1HSi_qs9IBGW9v3aJm8KRd4_3XO2gwboB/view?usp=sharing](https://drive.google.com/file/d/1HSi_qs9IBGW9v3aJm8KRd4_3XO2gwboB/view?usp=sharing)
+- 📄 Know about my experiences (https://storage.googleapis.com/uxfolio/65b82180278eb400029c01ca/EricHibbsRes2024_pAP.pdf)
 
 - ⚡ Fun fact **I have been a Phillies season ticket holder since birth!**
 
