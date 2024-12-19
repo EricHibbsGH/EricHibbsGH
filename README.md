@@ -3,7 +3,7 @@
 
 <p align="left"> <img src="https://komarev.com/ghpvc/?username=erichibbsgh&label=Profile%20views&color=0e75b6&style=flat" alt="erichibbsgh" /> </p>
 
-- 🔭 I’m currently working on **Sifting through MMA data to find inherent advantages.**
+- 🔭 I’m currently working on **Finishing up my final semester @ The University of Pittsburgh!**
 
 - 🌱 I’m currently learning **JavaScript, Database Management, & Data Visualization techniques**
 
