@@ -1,9 +1,9 @@
 <h1 align="center">Hi 👋, I'm Eric Hibbs</h1>
-<h3 align="center">A passionate user-centered designer based in Pittsburgh & Philadelphia, PA!</h3>
+<h3 align="center">A passionate user-centered designer based in Atlanta & Philadelphia, PA!</h3>
 
 <p align="left"> <img src="https://komarev.com/ghpvc/?username=erichibbsgh&label=Profile%20views&color=0e75b6&style=flat" alt="erichibbsgh" /> </p>
 
-- 🔭 I’m currently working on **Finishing up my final semester @ The University of Pittsburgh!**
+- 🔭 I’m currently working on **Machine Learning and AI @ Acuity INC.**
 
 - 🌱 I’m currently learning **JavaScript, Database Management, & Data Visualization techniques**
 
