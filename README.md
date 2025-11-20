@@ -5,9 +5,9 @@
 
 - 🔭 I’m currently working on **Machine Learning and AI @ Acuity INC.**
 
-- 🌱 I’m currently learning **JavaScript, Database Management, & Data Visualization techniques**
+- 🌱 I’m currently learning **Markov Chains...**
 
-- 👯 I’m looking to collaborate on **UI/UX Prototypes/Business Analytics**
+- 👯 I’m looking to collaborate on **nothing for now, I am employed.**
 
 - 👨‍💻 All of my projects are available at https://hibbs.design/
 
