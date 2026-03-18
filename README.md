@@ -9,7 +9,7 @@
 
 - 👯 I’m looking to collaborate on **nothing for now, I am employed.**
 
-- 💬 Ask me about **UI/UX best practices for AI**
+- 💬 Ask me about **AI Usage within Electrical Engineering**
 
 - 📄 Know about my experiences: (REDACTED FOR NOW).
 
