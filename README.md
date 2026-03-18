@@ -5,13 +5,11 @@
 
 - 🔭 I’m currently working on **Machine Learning and AI @ Acuity INC.**
 
-- 🌱 I’m currently learning **Markov Chains...**
+- 🌱 I’m currently learning **Markov Chains & Time Travel**
 
 - 👯 I’m looking to collaborate on **nothing for now, I am employed.**
 
-- 👨‍💻 All of my projects are available at https://hibbs.design/
-
-- 💬 Ask me about **Design Processes, Data Analyzation for Benefits, & my dog!**
+- 💬 Ask me about **UI/UX best practices for AI**
 
 - 📄 Know about my experiences: (REDACTED FOR NOW).
 
