@@ -9,7 +9,7 @@
 
 - 👯 I’m looking to collaborate on **nothing for now, I am employed.**
 
-- 💬 Ask me about **AI Usage within Electrical Engineering**
+- 💬 Ask me about **AI, or don't because it's boring**
 
 - 📄 Know about my experiences: (REDACTED FOR NOW).
 
