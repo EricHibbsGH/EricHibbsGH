@@ -3,7 +3,7 @@
 
 <p align="left"> <img src="https://komarev.com/ghpvc/?username=erichibbsgh&label=Profile%20views&color=0e75b6&style=flat" alt="erichibbsgh" /> </p>
 
-- 🔭 I’m currently working on **Machine Learning and AI @ Acuity INC.**
+- 🔭 I’m currently working on **Machine Learning and AI**
 
 - 🌱 I’m currently learning ****
 
