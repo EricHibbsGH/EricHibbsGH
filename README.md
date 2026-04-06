@@ -5,15 +5,15 @@
 
 - 🔭 I’m currently working on **Machine Learning and AI @ Acuity INC.**
 
-- 🌱 I’m currently learning **Markov Chains & Time Travel**
+- 🌱 I’m currently learning ****
 
 - 👯 I’m looking to collaborate on **nothing for now, I am employed.**
 
-- 💬 Ask me about **AI, or don't because it's boring**
+- 💬 Ask me about **everything**
 
 - 📄 Know about my experiences: (REDACTED FOR NOW).
 
-- ⚡ Fun fact **I have been a Phillies season ticket holder since birth!**
+- ⚡ Fun fact **aspiring car mechanic**
 
 <h3 align="left">Connect with me:</h3>
 <p align="left">
