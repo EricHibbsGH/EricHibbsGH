@@ -9,9 +9,8 @@
 
 - 📄 Know about my experiences: (REDACTED FOR NOW).
 
-- ⚡ Fun fact **aspiring car mechanic**
+- ⚡ Fun fact **Skyline R34 Enthusiast**
 
-<h3 align="left">Connect with me:</h3>
 <p align="left">
 </p>
 
