@@ -361,9 +361,6 @@ export function buildGallery(world, { renderer, site }) {
   bookshelf(-halfW + 0.22, 6.5, Math.PI / 2);
   collide(-halfW + 0.22, 6.5, 0.24, 1.35, 'shelf');
 
-  // Reading chair beside the shelf, square to the wall
-  sofa(-6.9, 3.7, Math.PI / 2, { length: 1.05, fabric: M.moss, pillows: [M.linen] });
-  collide(-6.9, 3.7, 0.55, 0.55, 'chair');
   {
     const g = placed(-7.55, 2.4);
     cyl(g, 0.3, 0.3, 0.04, M.walnut, 0, 0.58, 0, 28);
