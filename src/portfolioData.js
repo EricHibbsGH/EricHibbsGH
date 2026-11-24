@@ -125,7 +125,8 @@ export const resume = {
       end: 'Nov 2026',
       place: 'Atlanta, GA',
       bullets: [
-        'Built agentic AI systems for Acuity, a leader in lighting and building technology.',
+        'Built an app that finds SWAP and consolidation opportunities, helping Acuity save millions of dollars a year.',
+        'Prototyped and tested multiple agentic AI systems, each built as a full-stack application, for a leader in lighting and building technology.',
         'Analyzed and optimized enterprise datasets with millions of records.',
       ],
     },
