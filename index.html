@@ -108,10 +108,10 @@
         </span>
       </div>
 
-      <div class="hud-tip hud-panel" id="hud-seat-tip" role="status" aria-live="polite">
-        <strong>Take a seat</strong>
-        <span>Click to sit, or walk up and press <kbd>E</kbd></span>
-      </div>
+      <!-- Floats in the room next to the nearest seat, like a game interaction marker. -->
+      <button type="button" class="seat-tag" id="seat-tag" tabindex="-1" hidden>
+        <kbd>E</kbd><span class="seat-tag-text">Sit</span>
+      </button>
 
       <div class="hud-coach hud-panel" id="hud-coach" role="status">
         <span class="coach-step"></span>

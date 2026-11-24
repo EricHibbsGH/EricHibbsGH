@@ -21,8 +21,6 @@ const FOCUS_DISTANCE = 4.6; // metres — camera starts framing the artwork
 const VIEW_DISTANCE = 3.4; // metres — stop this close to a painting and the camera turns to face it
 const SPAWN = new THREE.Vector3(0, 0, 8);
 const SEAT_DISTANCE = 1.4; // metres — shows the "Sit down" prompt
-const SIT_PROMPT = { prompt: 'Sit down' };
-const STAND_PROMPT = { prompt: 'Stand up' };
 
 const canvas = document.getElementById('scene');
 const input = new Input();
@@ -32,6 +30,7 @@ const state = {
   activeId: null,
   seat: null, // nearest seat in reach, when no painting is
   pendingSeat: null, // clicked seat the figure is walking over to
+  hoverSeat: null, // seat under the mouse pointer
   modalCooldown: 0,
   travelFocus: null,
   camYawGoal: 0, // the camera holds this angle; it changes on arrival at a painting or a right-drag
@@ -162,6 +161,42 @@ const intro = document.getElementById('intro');
 const enterBtn = document.getElementById('enter-btn');
 
 /** "Drag to move camera" notice: shown once after entering, gone after the first drag. */
+/**
+ * Seat tag: a small marker that hangs in the air beside a seat (projected from the
+ * 3D scene every frame), the way games mark something you can interact with.
+ */
+const seatTag = {
+  el: document.getElementById('seat-tag'),
+  text: document.querySelector('#seat-tag .seat-tag-text'),
+  seat: null,
+  label: '',
+  anchor: new THREE.Vector3(),
+  show(seat, label, withKey, camera) {
+    this.seat = seat;
+    if (label !== this.label) {
+      this.label = label;
+      this.text.textContent = label;
+      this.el.classList.toggle('has-key', withKey);
+      this.el.setAttribute('aria-label', withKey ? `${label} (press E)` : label);
+    }
+    // Beside the cushion, or beside the head when sitting.
+    const seated = label === 'Stand up';
+    this.anchor.set(seat.pos.x, seat.top + (seated ? 0.85 : 0.3), seat.pos.z).project(camera);
+    const onScreen = this.anchor.z < 1 && Math.abs(this.anchor.x) < 1.1 && Math.abs(this.anchor.y) < 1.1;
+    this.el.hidden = !onScreen;
+    if (!onScreen) return;
+    const x = (this.anchor.x * 0.5 + 0.5) * window.innerWidth + (seated ? 46 : 26);
+    const y = (-this.anchor.y * 0.5 + 0.5) * window.innerHeight;
+    this.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translateY(-50%)`;
+  },
+  hide() {
+    if (this.el.hidden) return;
+    this.el.hidden = true;
+    this.seat = null;
+    this.label = '';
+  },
+};
+
 const lookToast = {
   el: document.getElementById('hud-look-toast'),
   timer: 0,
@@ -278,7 +313,6 @@ async function createWorld() {
     }
     return best;
   };
-  const seatTip = document.getElementById('hud-seat-tip');
   let hoverQueued = null;
   canvas.addEventListener('pointermove', (e) => {
     if (e.pointerType !== 'mouse' || hoverQueued) return;
@@ -286,17 +320,29 @@ async function createWorld() {
       hoverQueued = null;
       const painting = pick(e);
       const seat = !painting && state.started && !modals.isOpen && !controller.isSeated ? pickSeat() : null;
+      state.hoverSeat = cam.isLooking ? null : seat;
       canvas.classList.toggle('is-pickable', (!!painting || !!seat) && !modals.isOpen);
-      seatTip.classList.toggle('is-visible', !!seat && !cam.isLooking);
-      if (seat) {
-        // Keep the hint on screen: flip to the other side of the cursor near the edges.
-        const x = e.clientX + 18 + seatTip.offsetWidth > window.innerWidth ? e.clientX - 18 - seatTip.offsetWidth : e.clientX + 18;
-        const y = e.clientY + 18 + seatTip.offsetHeight > window.innerHeight ? e.clientY - 18 - seatTip.offsetHeight : e.clientY + 18;
-        seatTip.style.transform = `translate(${x}px, ${y}px)`;
-      }
     });
   });
-  canvas.addEventListener('pointerleave', () => seatTip.classList.remove('is-visible'));
+  canvas.addEventListener('pointerleave', () => {
+    state.hoverSeat = null;
+  });
+
+  // The floating seat tag: tap or click it to sit (or stand).
+  seatTag.el.addEventListener('click', () => {
+    if (controller.isSeated || state.seat) interact();
+    else if (seatTag.seat) walkToSeat(seatTag.seat);
+  });
+  const walkToSeat = (seat) => {
+    const d = Math.hypot(controller.position.x - seat.pos.x, controller.position.z - seat.pos.z);
+    if (d < SEAT_DISTANCE) {
+      sitOn(seat);
+    } else {
+      audio.unlock();
+      controller.walkTo(seat.pos);
+      state.pendingSeat = seat;
+    }
+  };
   let downAt = null;
   canvas.addEventListener('pointerdown', (e) => {
     downAt = { x: e.clientX, y: e.clientY };
@@ -313,15 +359,7 @@ async function createWorld() {
     // Click a seat: walk over and sit down.
     const seat = controller.isSeated ? null : pickSeat();
     if (seat) {
-      seatTip.classList.remove('is-visible');
-      const d = Math.hypot(controller.position.x - seat.pos.x, controller.position.z - seat.pos.z);
-      if (d < SEAT_DISTANCE) {
-        sitOn(seat);
-      } else {
-        audio.unlock();
-        controller.walkTo(seat.pos);
-        state.pendingSeat = seat;
-      }
+      walkToSeat(seat);
       return;
     }
     // Click-to-walk: head for the clicked spot on the floor.
@@ -449,8 +487,15 @@ function startLoop(w) {
         }
       }
     }
-    const seatedPrompt = state.started && !openId && w.controller.isSeated ? STAND_PROMPT : null;
-    hud.setPrompt(active ? active.exhibit : seatedPrompt ?? (state.seat ? SIT_PROMPT : null));
+    hud.setPrompt(active ? active.exhibit : null);
+    if (state.started && !openId) {
+      if (w.controller.isSeated) seatTag.show(w.controller.seat, 'Stand up', true, w.camera);
+      else if (state.seat) seatTag.show(state.seat, 'Sit', true, w.camera);
+      else if (state.hoverSeat) seatTag.show(state.hoverSeat, 'Click to sit', false, w.camera);
+      else seatTag.hide();
+    } else {
+      seatTag.hide();
+    }
 
     // Camera angle: hold steady while walking; turn to face a painting once, on arrival
     // (stopping in front of it or quick-travelling to it). A right-drag always wins
