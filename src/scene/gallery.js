@@ -12,6 +12,7 @@ import {
   createWallLetteringTexture,
   createFabricTexture,
   createWoodTexture,
+  createInterestArtTexture,
 } from './textures.js';
 import { mulberry32 } from '../core/math.js';
 
@@ -24,7 +25,7 @@ const WAINSCOT_H = 1.0;
  * wainscoting, timber beams, a lounge, a reading nook, a decorated tree and garlands.
  * Returns world bounds and AABB colliders used by the player controller.
  */
-export function buildGallery(world, { renderer, site }) {
+export function buildGallery(world, { renderer, site, wallArt = {} }) {
   // Everything static is built into this group, then merged into a handful of draw calls.
   const scene = new THREE.Group();
   const halfW = ROOM.width / 2;
@@ -82,6 +83,7 @@ export function buildGallery(world, { renderer, site }) {
   // and drawn as one instanced mesh. Colours are HDR (> 1) so only they feed the bloom.
   const bulbs = [];
   const glows = []; // larger soft halos: pendants, lamp shades, the star
+  const shadowLights = []; // sources the stick figure casts shadows from
   const toWorldFront = (x, y, z) => [-x, y, halfD - z]; // front-wall group local → world
 
   const mesh = (geo, mat, { cast = true, receive = true } = {}) => {
@@ -308,6 +310,7 @@ export function buildGallery(world, { renderer, site }) {
     shade.position.y = 1.62;
     g.add(shade);
     glows.push([x, 1.6, z]);
+    shadowLights.push({ kind: 'point', pos: new THREE.Vector3(x, 1.6, z), power: 4 });
     const light = new THREE.PointLight('#ffc27a', 5, 7, 2);
     light.position.set(x, 1.52, z);
     world.add(light);
@@ -375,6 +378,7 @@ export function buildGallery(world, { renderer, site }) {
     shade.position.set(0.06, 0.92, 0);
     g.add(shade);
     glows.push([-7.49, 0.92, 2.4]);
+    shadowLights.push({ kind: 'point', pos: new THREE.Vector3(-7.49, 0.92, 2.4), power: 2 });
     const l = new THREE.PointLight('#ffc27a', 2.8, 4.5, 2);
     l.position.set(-7.49, 0.88, 2.4);
     world.add(l);
@@ -517,6 +521,7 @@ export function buildGallery(world, { renderer, site }) {
     const glow = new THREE.PointLight('#ffb36b', 4, 6, 2);
     glow.position.set(x, 1.7, z);
     world.add(glow);
+    shadowLights.push({ kind: 'point', pos: glow.position.clone(), power: 3 });
     collide(x, z, 1.25, 1.25, 'tree');
   }
 
@@ -555,6 +560,59 @@ export function buildGallery(world, { renderer, site }) {
   smallArt(-2.1, 1.95, halfD - 0.01, Math.PI, 0.55, 0.7, 7);
   smallArt(2.1, 1.95, halfD - 0.01, Math.PI, 0.55, 0.7, 4);
 
+  /* ------------------------------------------- personal wall: teams + pets */
+  const loader = new THREE.TextureLoader();
+  const posterFrame = std('#151515', 0.45, 0.2);
+  function wallPiece(style, x, y, z, rotY, w, h, frameMat) {
+    const g = new THREE.Group();
+    g.position.set(x, y, z);
+    g.rotation.y = rotY;
+    scene.add(g);
+    const b = 0.06;
+    box(g, w + b * 2, b, 0.06, frameMat, 0, h / 2 + b / 2, 0.03);
+    box(g, w + b * 2, b, 0.06, frameMat, 0, -h / 2 - b / 2, 0.03);
+    box(g, b, h, 0.06, frameMat, -w / 2 - b / 2, 0, 0.03);
+    box(g, b, h, 0.06, frameMat, w / 2 + b / 2, 0, 0.03);
+    const mat = new THREE.MeshStandardMaterial({ map: createInterestArtTexture(style, w / h, renderer), roughness: 0.6 });
+    // Drop a real photo in /public/art and point portfolioData.wallArt at it to replace the illustration.
+    if (wallArt[style]) {
+      loader.load(wallArt[style], (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        mat.map = tex;
+        mat.needsUpdate = true;
+      });
+    }
+    const art = mesh(new THREE.PlaneGeometry(w, h), mat, { cast: false });
+    art.position.z = 0.02;
+    g.add(art);
+  }
+  /** A warm picture light washing a group of frames (no shadow map, so it is cheap). */
+  function pictureLight(from, to) {
+    const s = new THREE.SpotLight('#ffe2bd', 26, 0, 0.62, 0.7, 2);
+    s.position.copy(from);
+    s.target.position.copy(to);
+    world.add(s, s.target);
+    shadowLights.push({
+      kind: 'spot',
+      pos: from.clone(),
+      dir: to.clone().sub(from).normalize(),
+      cosOuter: Math.cos(0.62),
+      cosInner: Math.cos(0.62 * 0.3),
+      power: 4,
+    });
+  }
+  // Philadelphia wall: the back half of the left wall
+  const leftX = -halfW + 0.01;
+  wallPiece('phillies', leftX, 2.2, -5.4, Math.PI / 2, 1.1, 1.4, posterFrame);
+  wallPiece('eagles', leftX, 2.2, -7.0, Math.PI / 2, 1.1, 1.4, posterFrame);
+  wallPiece('flyers', leftX, 2.2, -8.6, Math.PI / 2, 1.1, 1.4, posterFrame);
+  pictureLight(new THREE.Vector3(-6.4, 4.2, -7.0), new THREE.Vector3(-halfW, 2.1, -7.0));
+  // Pets: the right wall, near the middle of the room
+  const rightX = halfW - 0.01;
+  wallPiece('dog', rightX, 2.15, 1.15, -Math.PI / 2, 0.95, 1.15, M.brass);
+  wallPiece('cat', rightX, 2.15, 2.65, -Math.PI / 2, 0.95, 1.15, M.brass);
+  pictureLight(new THREE.Vector3(6.6, 4.2, 1.9), new THREE.Vector3(halfW, 2.1, 1.9));
+
   /* -------------------------------------------------- wall lettering */
   const lettering = new THREE.Mesh(
     new THREE.PlaneGeometry(4.0, 0.78),
@@ -580,6 +638,7 @@ export function buildGallery(world, { renderer, site }) {
     bulb.position.set(x, H - drop - 0.06, z);
     scene.add(bulb);
     glows.push([x, H - drop - 0.08, z]);
+    shadowLights.push({ kind: 'point', pos: new THREE.Vector3(x, H - drop - 0.08, z), power: 6 });
   }
   pendant(0, -5.5);
   pendant(0, 0.5);
@@ -606,6 +665,7 @@ export function buildGallery(world, { renderer, site }) {
   sun.shadow.normalBias = 0.03;
   sun.shadow.radius = 5;
   world.add(sun, sun.target);
+  shadowLights.push({ kind: 'dir', dir: sun.position.clone().sub(sun.target.position).normalize(), power: 0.3 });
 
   // Every warm bulb in the room in a single instanced draw.
   if (bulbs.length) {
@@ -655,6 +715,7 @@ export function buildGallery(world, { renderer, site }) {
   return {
     bounds: { minX: -halfW, maxX: halfW, minZ: -halfD, maxZ: halfD },
     colliders,
+    shadowLights,
     update(dt, t) {
       for (const fn of updaters) fn(dt, t);
     },

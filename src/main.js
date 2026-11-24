@@ -1,6 +1,6 @@
 import './styles.css';
 import * as THREE from 'three';
-import { site, exhibits, resume } from './portfolioData.js';
+import { site, exhibits, resume, wallArt } from './portfolioData.js';
 import { Input } from './core/input.js';
 import { smoothstep, prefersReducedMotion } from './core/math.js';
 import { waitForFonts, createGuideArrowTexture } from './scene/textures.js';
@@ -192,13 +192,25 @@ async function createWorld() {
   const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 120);
   await waitForFonts();
 
-  const gallery = buildGallery(scene, { renderer, site });
+  const gallery = buildGallery(scene, { renderer, site, wallArt });
   const frames = buildFrames(scene, exhibits, { renderer });
   const colliders = [...gallery.colliders, ...frames.map((f) => f.collider)];
 
   const figure = new StickFigure();
   figure.root.position.copy(SPAWN);
   scene.add(figure.root, figure.shadowRig);
+  // Shadows follow the room's real lights, including each painting's spotlight.
+  figure.setShadowLights([
+    ...gallery.shadowLights,
+    ...frames.map(({ spot }) => ({
+      kind: 'spot',
+      pos: spot.position.clone(),
+      dir: spot.target.position.clone().sub(spot.position).normalize(),
+      cosOuter: Math.cos(spot.angle),
+      cosInner: Math.cos(spot.angle * (1 - spot.penumbra)),
+      power: 5,
+    })),
+  ]);
   figure.onStep = (s) => audio.footstep(s);
   figure.onLand = (s) => audio.land(s);
 
@@ -389,7 +401,7 @@ function startLoop(w) {
       focus = { point: focusFrame.center, weight: near * smoothstep(0.3, 0.85, inView) };
     }
     w.cam.update(dt, pos, state.camYawGoal, focus);
-    w.figure.faceCamera(w.camera);
+    w.figure.faceCamera(w.camera, dt);
 
     // Directional help: HUD pill + floor compass toward the nearest unseen exhibit.
     // Directions are given relative to the screen ("ahead" = away from the camera).

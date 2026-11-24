@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { clamp, damp } from '../core/math.js';
+import { clamp, damp, smoothstep } from '../core/math.js';
 import { createBlobShadowTexture } from '../scene/textures.js';
 
 /*
@@ -8,10 +8,13 @@ import { createBlobShadowTexture } from '../scene/textures.js';
  * behind a black ink stroke. Joints are moved every frame — no texture uploads —
  * so it stays razor sharp at any distance and animates at full frame rate.
  *
- * Shadows: a third copy of the strokes is flattened onto the floor every frame with
- * a planar projection matrix from a key light above the figure. That is the shadow a
- * ray traced from that light would produce, at the cost of a few extra triangles.
- * A soft contact shadow sits under the feet for grounding.
+ * Shadows come from the room's real lights. Every frame each light's contribution
+ * at the figure is estimated (power / distance², spotlights only inside their cone),
+ * the strongest few each cast a shadow, and each shadow's darkness is that light's
+ * share of the total. A shadow is a copy of the strokes, turned to face its light
+ * and flattened onto the floor with a planar projection — the outline a ray from
+ * that light would trace — at the cost of a few small draw calls. A soft contact
+ * shadow sits under the feet for grounding.
  *
  * Layout values are in "drawing units" taken from the reference sketch
  * (feet at FOOT_Y, 1 unit = K metres → the figure stands ≈ 1.75 m tall).
@@ -26,8 +29,11 @@ const ARM_LEN = 172;
 const LEG_LEN = 160;
 const INK_W = 9 * K;
 const HALO_W = 20 * K;
-const SHADOW_OPACITY = 0.38;
+const FIGURE_H = 1.75;
 const FLOOR_Y = 0.006;
+const MAX_SHADOWS = 3;
+const SHADOW_STRENGTH = 0.8; // darkest a single shadow can get
+const AMBIENT = 0.55; // fill light that no single shadow blocks
 
 const X = (px) => (px - CX) * K;
 const Y = (py) => (FOOT_Y - py) * K;
@@ -38,12 +44,6 @@ export class StickFigure {
     this.root.name = 'player';
     this.billboard = new THREE.Group();
     this.root.add(this.billboard);
-
-    // Projected shadow lives in world space; main.js adds it to the scene.
-    this.shadowRig = new THREE.Group();
-    this.shadowRig.matrixAutoUpdate = false;
-    this.shadowMatrix = new THREE.Matrix4();
-    this.keyLight = new THREE.Vector3();
 
     const segGeo = new THREE.PlaneGeometry(1, 1);
     segGeo.translate(0, 0.5, 0); // unit stroke running from the origin along +Y
@@ -68,27 +68,45 @@ export class StickFigure {
       };
     };
 
-    // Stencil makes overlapping strokes darken the floor exactly once.
-    this.shadowMat = new THREE.MeshBasicMaterial({
-      color: '#000000',
-      transparent: true,
-      opacity: SHADOW_OPACITY,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-      stencilWrite: true,
-      stencilRef: 1,
-      stencilFunc: THREE.NotEqualStencilFunc,
-      stencilZPass: THREE.ReplaceStencilOp,
-      polygonOffset: true,
-      polygonOffsetFactor: -2,
-      polygonOffsetUnits: -2,
-    });
-
     this.layers = [
       makeLayer(new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }), HALO_W, 0, 2, this.billboard),
       makeLayer(new THREE.MeshBasicMaterial({ color: '#141210', toneMapped: false }), INK_W, 0.004, 3, this.billboard),
-      makeLayer(this.shadowMat, INK_W * 1.25, 0, 1, this.shadowRig),
     ];
+
+    // Shadow pool, in world space (main.js adds `shadowRig` to the scene).
+    this.shadowRig = new THREE.Group();
+    this.shadows = [];
+    for (let i = 0; i < MAX_SHADOWS; i++) {
+      const rig = new THREE.Group();
+      rig.matrixAutoUpdate = false;
+      rig.visible = false;
+      // Each shadow has its own stencil value: strokes within one shadow darken the
+      // floor once, while two shadows that overlap still darken each other.
+      const mat = new THREE.MeshBasicMaterial({
+        color: '#000000',
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        stencilWrite: true,
+        stencilRef: i + 1,
+        stencilFunc: THREE.NotEqualStencilFunc,
+        stencilZPass: THREE.ReplaceStencilOp,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -2,
+      });
+      this.layers.push(makeLayer(mat, INK_W * 1.25, 0, 1, rig));
+      this.shadowRig.add(rig);
+      this.shadows.push({ rig, mat });
+    }
+    this.lights = [];
+    this.weights = [];
+    this.caster = new THREE.Matrix4();
+    this.projection = new THREE.Matrix4();
+    this.quat = new THREE.Quaternion();
+    this.up = new THREE.Vector3(0, 1, 0);
+    this.one = new THREE.Vector3(1, 1, 1);
 
     this.contact = new THREE.Mesh(
       new THREE.PlaneGeometry(0.7, 0.7),
@@ -108,6 +126,16 @@ export class StickFigure {
     // Angles measured from straight down, positive = away from the body.
     this.pose = { armL: 0.66, armR: 0.66, legL: 0.77, legR: 0.77, lenL: 1, lenR: 1 };
     this.#apply();
+  }
+
+  /**
+   * Lights that cast the figure's shadows.
+   * { kind: 'point', pos, power } | { kind: 'spot', pos, dir, cosOuter, cosInner, power } | { kind: 'dir', dir, power }
+   * `dir` for 'dir' lights points toward the light; for spots it is the beam direction.
+   */
+  setShadowLights(lights) {
+    this.lights = lights;
+    this.weights = lights.map(() => 0);
   }
 
   update(dt, { speed, maxSpeed, grounded, vy }) {
@@ -155,44 +183,78 @@ export class StickFigure {
     const sc = 1 - Math.min(0.45, h * 0.35);
     this.contact.scale.set(sc, sc, sc);
     this.contact.material.opacity = 1 - Math.min(0.7, h * 0.6);
-    this.shadowMat.opacity = SHADOW_OPACITY * (1 - Math.min(0.5, h * 0.25));
 
     this.#apply();
   }
 
-  /**
-   * Keep the drawing turned toward the camera, then cast its shadow. The key light
-   * sits above the figure, slightly toward the camera and to one side, so the
-   * shadow falls behind the figure where it reads clearly.
-   */
-  faceCamera(camera) {
+  /** Turn the drawing toward the camera, then recast its shadows from the room's lights. */
+  faceCamera(camera, dt = 1 / 60) {
     const p = this.root.position;
-    const dx = camera.position.x - p.x;
-    const dz = camera.position.z - p.z;
-    this.billboard.rotation.y = Math.atan2(dx, dz);
-    this.root.updateMatrixWorld(true);
-
-    const len = Math.hypot(dx, dz) || 1;
-    const fx = dx / len;
-    const fz = dz / len;
-    this.keyLight.set(p.x + fx * 1.0 - fz * 1.5, 4.2, p.z + fz * 1.0 + fx * 1.5);
-    this.#projectShadow();
+    this.billboard.rotation.y = Math.atan2(camera.position.x - p.x, camera.position.z - p.z);
+    this.#castShadows(dt);
   }
 
-  /** Planar projection of the strokes onto the floor plane y = FLOOR_Y from the key light. */
-  #projectShadow() {
-    const { x, y, z } = this.keyLight;
-    const h = FLOOR_Y;
-    const d = y - h; // plane · light
-    // M = (P·L) I − L Pᵀ, with P = (0, 1, 0, −h) and L = (x, y, z, 1)
-    this.shadowMatrix.set(
-      d, -x, 0, x * h,
-      0, d - y, 0, y * h,
-      0, -z, d, z * h,
-      0, -1, 0, d + h,
-    );
-    this.shadowRig.matrix.multiplyMatrices(this.shadowMatrix, this.billboard.matrixWorld);
-    this.shadowRig.matrixWorldNeedsUpdate = true;
+  #castShadows(dt) {
+    const p = this.root.position;
+    const centreY = p.y + FIGURE_H / 2;
+    const topY = p.y + FIGURE_H;
+
+    // How much each light reaches the figure, smoothed so shadows fade instead of popping.
+    let total = AMBIENT;
+    this.lights.forEach((L, i) => {
+      let c;
+      if (L.kind === 'dir') {
+        c = L.power;
+      } else {
+        const dx = L.pos.x - p.x;
+        const dy = L.pos.y - centreY;
+        const dz = L.pos.z - p.z;
+        c = L.power / Math.max(dx * dx + dy * dy + dz * dz, 0.6);
+        if (L.kind === 'spot') {
+          const len = Math.hypot(dx, dy, dz) || 1;
+          const cos = -(dx * L.dir.x + dy * L.dir.y + dz * L.dir.z) / len;
+          c *= smoothstep(L.cosOuter, L.cosInner, cos);
+        }
+      }
+      this.weights[i] = damp(this.weights[i], c, 6, dt);
+      total += this.weights[i];
+    });
+
+    const order = this.weights.map((w, i) => i).sort((a, b) => this.weights[b] - this.weights[a]);
+    this.shadows.forEach(({ rig, mat }, k) => {
+      const i = order[k];
+      const opacity = i == null ? 0 : (SHADOW_STRENGTH * this.weights[i]) / total;
+      if (opacity < 0.015) {
+        rig.visible = false;
+        return;
+      }
+      const L = this.lights[i];
+      let lx, ly, lz, lw, facing;
+      if (L.kind === 'dir') {
+        [lx, ly, lz, lw] = [L.dir.x, L.dir.y, L.dir.z, 0];
+        facing = Math.atan2(L.dir.x, L.dir.z);
+      } else {
+        // A light below the head can't project onto the floor; lift it just above.
+        [lx, ly, lz, lw] = [L.pos.x, Math.max(L.pos.y, topY + 0.8), L.pos.z, 1];
+        facing = Math.atan2(L.pos.x - p.x, L.pos.z - p.z);
+      }
+      // The caster is the drawing turned to face this light, standing where the figure is.
+      this.quat.setFromAxisAngle(this.up, facing);
+      this.caster.compose(p, this.quat, this.one);
+      // Planar projection onto y = FLOOR_Y:  M = (P·L) I − L Pᵀ,  P = (0, 1, 0, −h)
+      const hgt = FLOOR_Y;
+      const d = ly - hgt * lw;
+      this.projection.set(
+        d, -lx, 0, lx * hgt,
+        0, d - ly, 0, ly * hgt,
+        0, -lz, d, lz * hgt,
+        0, -lw, 0, d + lw * hgt,
+      );
+      rig.matrix.multiplyMatrices(this.projection, this.caster);
+      rig.matrixWorldNeedsUpdate = true;
+      rig.visible = true;
+      mat.opacity = opacity * (1 - Math.min(0.5, p.y * 0.25));
+    });
   }
 
   #apply() {

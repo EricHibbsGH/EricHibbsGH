@@ -750,6 +750,314 @@ export function createSmallArtTexture(seed, aspect, renderer) {
   return toTexture(canvas, renderer);
 }
 
+/* --------------------------------------------------------- personal art */
+/* Original poster designs in each team's colours (no official marks), plus pet portraits. */
+
+function drawPhillies(ctx, W, H) {
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(232,24,40,0.16)';
+  for (let x = 24; x < W; x += 48) ctx.fillRect(x, 0, 5, H);
+  ctx.fillStyle = '#002d72';
+  ctx.fillRect(0, H * 0.83, W, H * 0.17);
+
+  // Baseball
+  const cx = W / 2;
+  const cy = H * 0.38;
+  const r = W * 0.27;
+  circle(ctx, cx + 10, cy + 14, r, 'rgba(0,0,0,0.12)');
+  circle(ctx, cx, cy, r, '#ffffff');
+  ctx.strokeStyle = '#d4d4d4';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 3, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.strokeStyle = '#e81828';
+  for (const side of [-1, 1]) {
+    const ax = cx + side * r * 1.32;
+    const R = r * 0.95;
+    const a0 = side < 0 ? -0.62 : Math.PI - 0.62;
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.arc(ax, cy, R, a0, a0 + 1.24);
+    ctx.stroke();
+    ctx.lineWidth = 5;
+    for (let a = a0 + 0.08; a < a0 + 1.2; a += 0.12) {
+      const px = ax + Math.cos(a) * R;
+      const py = cy + Math.sin(a) * R;
+      const tx = -Math.sin(a);
+      const ty = Math.cos(a);
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px + Math.cos(a) * s * 16 + tx * 9, py + Math.sin(a) * s * 16 + ty * 9);
+        ctx.stroke();
+      }
+    }
+  }
+  ctx.restore();
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#e81828';
+  ctx.font = `italic bold ${W * 0.19}px ${SERIF}`;
+  ctx.fillText('Phillies', cx, H * 0.76);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${W * 0.045}px ${SANS}`;
+  ctx.fillText('PHILADELPHIA  ·  EST. 1883', cx, H * 0.93);
+}
+
+function drawEagles(ctx, W, H) {
+  const bg = ctx.createRadialGradient(W * 0.5, H * 0.4, 0, W * 0.5, H * 0.4, H * 0.8);
+  bg.addColorStop(0, '#0a6a73');
+  bg.addColorStop(1, '#003a40');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Sweeping wing strokes
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 7; i++) {
+    ctx.strokeStyle = i % 2 ? 'rgba(165,172,175,0.9)' : 'rgba(255,255,255,0.92)';
+    ctx.lineWidth = W * (0.028 - i * 0.002);
+    ctx.beginPath();
+    ctx.moveTo(W * 0.12, H * 0.5 - i * H * 0.03);
+    ctx.quadraticCurveTo(W * 0.5, H * 0.16 - i * H * 0.015, W * 0.92, H * 0.1 + i * H * 0.045);
+    ctx.stroke();
+  }
+
+  // Football
+  ctx.save();
+  ctx.translate(W * 0.5, H * 0.54);
+  ctx.rotate(-0.35);
+  ctx.fillStyle = '#7a4424';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, W * 0.21, W * 0.125, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = W * 0.012;
+  for (const sx of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(sx * W * 0.15, -W * 0.08);
+    ctx.lineTo(sx * W * 0.15, W * 0.08);
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.moveTo(-W * 0.07, 0);
+  ctx.lineTo(W * 0.07, 0);
+  ctx.stroke();
+  ctx.lineWidth = W * 0.009;
+  for (let i = -3; i <= 3; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * W * 0.02, -W * 0.022);
+    ctx.lineTo(i * W * 0.02, W * 0.022);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${W * 0.17}px ${SERIF}`;
+  ctx.fillText('EAGLES', W / 2, H * 0.8);
+  ctx.fillStyle = '#a5acaf';
+  ctx.font = `bold ${W * 0.045}px ${SANS}`;
+  ctx.fillText('GO BIRDS  ·  EST. 1933', W / 2, H * 0.91);
+}
+
+function drawFlyers(ctx, W, H) {
+  ctx.fillStyle = '#111111';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#f74902';
+  ctx.beginPath();
+  ctx.moveTo(0, H * 0.5);
+  ctx.lineTo(W, H * 0.3);
+  ctx.lineTo(W, H);
+  ctx.lineTo(0, H);
+  ctx.closePath();
+  ctx.fill();
+
+  // Crossed sticks
+  ctx.lineCap = 'round';
+  for (const side of [-1, 1]) {
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = W * 0.032;
+    const x0 = W / 2 - side * W * 0.3;
+    const x1 = W / 2 + side * W * 0.14;
+    ctx.beginPath();
+    ctx.moveTo(x0, H * 0.1);
+    ctx.lineTo(x1, H * 0.56);
+    ctx.stroke();
+    ctx.lineWidth = W * 0.05;
+    ctx.beginPath();
+    ctx.moveTo(x1, H * 0.56);
+    ctx.lineTo(x1 + side * W * 0.13, H * 0.585);
+    ctx.stroke();
+  }
+  // Puck
+  ctx.fillStyle = '#0b0b0b';
+  ctx.beginPath();
+  ctx.ellipse(W / 2, H * 0.67, W * 0.12, W * 0.045, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillRect(W / 2 - W * 0.12, H * 0.67 - W * 0.035, W * 0.24, W * 0.035);
+  ctx.fillStyle = '#2a2a2a';
+  ctx.beginPath();
+  ctx.ellipse(W / 2, H * 0.67 - W * 0.035, W * 0.12, W * 0.045, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `italic bold ${W * 0.17}px ${SERIF}`;
+  ctx.fillText('FLYERS', W / 2, H * 0.84);
+  ctx.fillStyle = '#111111';
+  ctx.font = `bold ${W * 0.045}px ${SANS}`;
+  ctx.fillText('BROAD STREET  ·  EST. 1967', W / 2, H * 0.93);
+}
+
+function drawDog(ctx, W, H) {
+  ctx.fillStyle = '#e4edf5';
+  ctx.fillRect(0, 0, W, H);
+  circle(ctx, W / 2, H * 0.5, W * 0.42, '#cfdeec');
+  const cx = W / 2;
+  const cy = H * 0.48;
+  // Floppy ears
+  ctx.fillStyle = '#8b5a2e';
+  for (const s of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(cx + s * W * 0.23, cy + W * 0.04, W * 0.085, W * 0.2, s * 0.28, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Head, muzzle
+  ctx.fillStyle = '#c98d4f';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, W * 0.24, W * 0.23, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#f0d3a9';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + W * 0.11, W * 0.14, W * 0.1, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Collar with a tag
+  ctx.strokeStyle = '#c0392b';
+  ctx.lineWidth = W * 0.035;
+  ctx.beginPath();
+  ctx.arc(cx, cy + W * 0.02, W * 0.23, Math.PI * 0.2, Math.PI * 0.8);
+  ctx.stroke();
+  circle(ctx, cx, cy + W * 0.27, W * 0.03, '#d8b35c');
+  // Eyes
+  for (const s of [-1, 1]) {
+    circle(ctx, cx + s * W * 0.085, cy - W * 0.04, W * 0.03, '#2a1b12');
+    circle(ctx, cx + s * W * 0.085 + W * 0.009, cy - W * 0.05, W * 0.009, '#ffffff');
+  }
+  // Nose, mouth, tongue
+  ctx.fillStyle = '#2a1b12';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + W * 0.06, W * 0.05, W * 0.034, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#e57f86';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + W * 0.165, W * 0.035, W * 0.045, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#2a1b12';
+  ctx.lineWidth = W * 0.008;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + W * 0.09);
+  ctx.lineTo(cx, cy + W * 0.12);
+  ctx.moveTo(cx - W * 0.06, cy + W * 0.12);
+  ctx.quadraticCurveTo(cx, cy + W * 0.15, cx + W * 0.06, cy + W * 0.12);
+  ctx.stroke();
+}
+
+function drawCat(ctx, W, H) {
+  ctx.fillStyle = '#e8f0e8';
+  ctx.fillRect(0, 0, W, H);
+  circle(ctx, W / 2, H * 0.5, W * 0.42, '#d4e3d4');
+  const cx = W / 2;
+  const cy = H * 0.5;
+  const fur = '#7f8791';
+  // Ears
+  for (const s of [-1, 1]) {
+    ctx.fillStyle = fur;
+    ctx.beginPath();
+    ctx.moveTo(cx + s * W * 0.21, cy - W * 0.02);
+    ctx.lineTo(cx + s * W * 0.17, cy - W * 0.27);
+    ctx.lineTo(cx + s * W * 0.03, cy - W * 0.17);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#e8a9b0';
+    ctx.beginPath();
+    ctx.moveTo(cx + s * W * 0.18, cy - W * 0.06);
+    ctx.lineTo(cx + s * W * 0.16, cy - W * 0.21);
+    ctx.lineTo(cx + s * W * 0.07, cy - W * 0.15);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // Head and muzzle
+  circle(ctx, cx, cy, W * 0.22, fur);
+  ctx.fillStyle = '#b4bac2';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + W * 0.09, W * 0.11, W * 0.075, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Forehead stripes
+  ctx.strokeStyle = '#5f666f';
+  ctx.lineWidth = W * 0.014;
+  ctx.lineCap = 'round';
+  for (const dx of [-0.05, 0, 0.05]) {
+    ctx.beginPath();
+    ctx.moveTo(cx + dx * W, cy - W * 0.19);
+    ctx.lineTo(cx + dx * W * 0.8, cy - W * 0.12);
+    ctx.stroke();
+  }
+  // Eyes with slit pupils
+  for (const s of [-1, 1]) {
+    ctx.fillStyle = '#8cc06b';
+    ctx.beginPath();
+    ctx.ellipse(cx + s * W * 0.085, cy - W * 0.01, W * 0.045, W * 0.032, s * 0.15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#16181a';
+    ctx.beginPath();
+    ctx.ellipse(cx + s * W * 0.085, cy - W * 0.01, W * 0.01, W * 0.028, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Nose, mouth, whiskers
+  ctx.fillStyle = '#e48a96';
+  ctx.beginPath();
+  ctx.moveTo(cx - W * 0.025, cy + W * 0.055);
+  ctx.lineTo(cx + W * 0.025, cy + W * 0.055);
+  ctx.lineTo(cx, cy + W * 0.085);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#3a3f45';
+  ctx.lineWidth = W * 0.007;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + W * 0.085);
+  ctx.quadraticCurveTo(cx - W * 0.03, cy + W * 0.12, cx - W * 0.055, cy + W * 0.1);
+  ctx.moveTo(cx, cy + W * 0.085);
+  ctx.quadraticCurveTo(cx + W * 0.03, cy + W * 0.12, cx + W * 0.055, cy + W * 0.1);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+  ctx.lineWidth = W * 0.005;
+  for (const s of [-1, 1]) {
+    for (const dy of [-0.012, 0.012, 0.036]) {
+      ctx.beginPath();
+      ctx.moveTo(cx + s * W * 0.07, cy + W * (0.085 + dy));
+      ctx.lineTo(cx + s * W * 0.27, cy + W * (0.06 + dy * 1.8));
+      ctx.stroke();
+    }
+  }
+}
+
+const INTEREST_ART = { phillies: drawPhillies, eagles: drawEagles, flyers: drawFlyers, dog: drawDog, cat: drawCat };
+
+/** Personal wall art: Philadelphia teams and the pets. */
+export function createInterestArtTexture(style, aspect, renderer) {
+  const W = 1024;
+  const H = Math.round(W / aspect);
+  const [canvas, ctx] = makeCanvas(W, H);
+  (INTEREST_ART[style] || drawDog)(ctx, W, H);
+  return toTexture(canvas, renderer);
+}
+
 /** Soft round contact shadow (used under the stick figure). */
 export function createBlobShadowTexture() {
   const [canvas, ctx] = makeCanvas(128, 128);
