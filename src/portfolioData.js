@@ -217,6 +217,14 @@ export const projects = [
     demo: 'https://erichibbsgh.github.io/MahjongForMom/',
     image: './projects/mahjong.jpg',
   },
+  {
+    title: 'This 3D Portfolio',
+    description: 'The walkable gallery you are in: Three.js and Vite, tuned to hold full frame rate, with click-to-walk, keyboard controls and an HTML fallback for every exhibit.',
+    tags: ['Three.js', 'JavaScript', 'HCI'],
+    source: 'https://github.com/EricHibbsGH/EricHibbsGH',
+    demo: 'https://erichibbs.dev/',
+    image: './projects/portfolio.jpg',
+  },
 ];
 
 /* ------------------------------------------------------------------ */
