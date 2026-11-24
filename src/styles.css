@@ -3516,3 +3516,138 @@ kbd {
     opacity: 0;
   }
 }
+
+/* ==========================================================================
+   Top bar: one clean strip. Everything is a 36px control on the same centre
+   line, the nav is a segmented control, and there is no drop shadow band.
+   ========================================================================== */
+:root {
+  --topbar-h: 56px;
+}
+.topbar {
+  gap: 16px;
+  background: #141414;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.topbar .hud-brand {
+  font-size: 1.12rem;
+}
+.topbar-divider {
+  height: 24px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.topbar .qt {
+  flex: 0 1 auto;
+  align-self: center;
+  align-items: stretch;
+  height: 36px;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.topbar .qt-link {
+  height: auto;
+  gap: 7px;
+  padding: 0 12px;
+  border-radius: 6px;
+  font-size: 0.86rem;
+  color: var(--hud-muted);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.topbar .qt-link::after {
+  display: none;
+}
+.topbar .qt-link:hover,
+.topbar .qt-link:focus-visible {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--hud-text);
+}
+.topbar .qt-link[aria-current='true'] {
+  background: rgba(255, 255, 255, 0.13);
+  color: #fff;
+}
+.qt-check {
+  width: 13px;
+  height: 13px;
+  background-size: 7px;
+}
+
+.topbar .hud-chip {
+  gap: 7px;
+  border-radius: 8px;
+  border-color: rgba(255, 255, 255, 0.16);
+  font-size: 0.84rem;
+}
+.topbar .hud-chip .icon {
+  width: 17px;
+  height: 17px;
+}
+.topbar .hud-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.32);
+}
+.topbar .hud-chip--cta,
+.topbar .hud-chip--cta:hover {
+  border-color: transparent;
+}
+
+/* Mute and Controls are icon buttons; the label stays for screen readers. */
+.topbar #btn-mute,
+.topbar #btn-controls {
+  width: 36px;
+  padding: 0;
+  justify-content: center;
+}
+.topbar #btn-mute .label,
+.topbar #btn-controls .label,
+.topbar .hud-chip.is-icon .label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.topbar .hud-chip[aria-expanded='true'],
+.topbar .hud-chip.is-muted {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+@media (max-width: 1100px) {
+  .topbar .hud-chip {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+  .topbar .hud-chip .label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+@media (max-width: 760px) {
+  :root {
+    --topbar-h: 52px;
+  }
+  .topbar {
+    gap: 8px;
+  }
+  .topbar .qt {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .topbar .qt-link {
+    padding: 0 8px;
+    font-size: 0.8rem;
+  }
+}

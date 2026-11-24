@@ -1,6 +1,6 @@
 import { wrapAngle } from '../core/math.js';
 
-const VISITED_KEY = 'gallery.visited';
+const LEGACY_VISITED_KEY = 'gallery.visited'; // no longer stored: ticks reset every visit
 const ONBOARD_KEY = 'gallery.onboarded';
 
 function load(key, fallback) {
@@ -40,7 +40,13 @@ export class Guide {
   constructor({ exhibits, hud }) {
     this.exhibits = exhibits;
     this.hud = hud;
-    this.visited = new Set(load(VISITED_KEY, []));
+    // Ticks belong to this visit only, so a returning visitor starts fresh.
+    this.visited = new Set();
+    try {
+      localStorage.removeItem(LEGACY_VISITED_KEY);
+    } catch {
+      /* storage unavailable */
+    }
     this.step = load(ONBOARD_KEY, false) ? COACH_STEPS.length : 0;
     this.walked = 0;
     this.lastPos = null;
@@ -57,7 +63,6 @@ export class Guide {
     this.coachStep = this.coach.querySelector('.coach-step');
     this.coach.querySelector('.coach-skip').addEventListener('click', () => this.#finishCoach());
 
-    for (const id of this.visited) hud.setVisited(id, true);
     this.#renderCoach();
   }
 
@@ -72,7 +77,6 @@ export class Guide {
   markVisited(id) {
     if (!this.visited.has(id)) {
       this.visited.add(id);
-      save(VISITED_KEY, [...this.visited]);
       this.hud.setVisited(id, true);
       if (this.visited.size === this.exhibits.length) this.doneTimer = 5;
     }
