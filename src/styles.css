@@ -3440,3 +3440,8 @@ kbd {
     justify-content: center;
   }
 }
+
+/* Project covers are real screenshots: keep the top of the page (its headline) in frame. */
+.project-thumb img {
+  object-position: top center;
+}

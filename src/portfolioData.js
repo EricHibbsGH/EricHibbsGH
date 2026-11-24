@@ -23,6 +23,19 @@ export const site = {
 };
 
 /**
+ * Personal wall art: the Philly teams and the pets.
+ * Leave a value empty for the built-in illustration, or put a photo in /public/art
+ * and point at it, e.g. dog: './art/dog.jpg'.
+ */
+export const wallArt = {
+  phillies: '',
+  eagles: '',
+  flyers: '',
+  dog: '',
+  cat: '',
+};
+
+/**
  * The four framed exhibits.
  * placement.wall: 'left' | 'right' | 'back'  (room is 18m wide × 22m deep × 4.6m high)
  * placement.offset: position along that wall in metres (z for side walls, x for the back wall)
@@ -169,7 +182,7 @@ export const projects = [
     tags: ['Research', 'LaTeX', 'RL systems'],
     source: 'https://github.com/EricHibbsGH/ASync-Mania',
     demo: 'https://erichibbsgh.github.io/ASync-Mania/',
-    image: null,
+    image: './projects/async-mania.jpg',
   },
   {
     title: 'Taming the Long-Tail',
@@ -177,7 +190,7 @@ export const projects = [
     tags: ['JavaScript', 'Chart.js', 'Data viz'],
     source: 'https://github.com/EricHibbsGH/Taming-the-Long-Tail-an-interactive.',
     demo: 'https://erichibbsgh.github.io/Taming-the-Long-Tail-an-interactive./',
-    image: null,
+    image: './projects/taming-the-long-tail.jpg',
   },
   {
     title: 'CacheOps',
@@ -185,7 +198,7 @@ export const projects = [
     tags: ['Developer tools', 'LLMs', 'HTML'],
     source: 'https://github.com/EricHibbsGH/CacheOps-site',
     demo: 'https://erichibbsgh.github.io/CacheOps-site/',
-    image: null,
+    image: './projects/cacheops.jpg',
   },
   {
     title: 'QuadChess',
@@ -193,7 +206,7 @@ export const projects = [
     tags: ['TypeScript', 'WebRTC', 'Game'],
     source: 'https://github.com/EricHibbsGH/QuadChess',
     demo: 'https://erichibbsgh.github.io/QuadChess/',
-    image: null,
+    image: './projects/quadchess.jpg',
   },
   {
     title: 'Mah Jongg Practice',
@@ -201,7 +214,7 @@ export const projects = [
     tags: ['JavaScript', 'Accessibility', 'Teaching'],
     source: 'https://github.com/EricHibbsGH/MahjongForMom',
     demo: 'https://erichibbsgh.github.io/MahjongForMom/',
-    image: null,
+    image: './projects/mahjong.jpg',
   },
   {
     title: 'Inside the Numbers: MLB',
@@ -209,7 +222,7 @@ export const projects = [
     tags: ['Python', 'Pandas', 'Plotly'],
     source: 'https://github.com/EricHibbsGH/Inside-the-Numbers-Unveiling-Insights-from-MLB-Data',
     demo: 'https://erichibbsgh.github.io/Inside-the-Numbers-Unveiling-Insights-from-MLB-Data/',
-    image: null,
+    image: './projects/mlb.png',
   },
 ];
 
