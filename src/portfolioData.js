@@ -177,8 +177,8 @@ export const github = {
 
 export const projects = [
   {
-    title: 'Overlapping, Not Approximating',
-    description: 'A 10-page independent analysis of TLT (ASPLOS ’26): 11 claims traced to exact lines of released code, 5 code-vs-paper gaps, and a math model of where the 1.7–2.1× speed-up comes from.',
+    title: 'Independent Code Audit of TLT',
+    description: 'A 12-page IEEE-format audit of TLT (ASPLOS ’26): 11 mechanisms traced to exact lines of released code, 5 code-vs-paper gaps, and an Amdahl’s-law check of the 1.7–2.1× speed-up.',
     tags: ['Research', 'LaTeX', 'RL systems'],
     source: 'https://github.com/EricHibbsGH/ASync-Mania',
     demo: 'https://erichibbsgh.github.io/ASync-Mania/',
@@ -216,14 +216,6 @@ export const projects = [
     demo: 'https://erichibbsgh.github.io/MahjongForMom/',
     image: './projects/mahjong.jpg',
   },
-  {
-    title: 'Inside the Numbers: MLB',
-    description: 'A data story on MLB betting lines, pitcher performance and inning-by-inning scoring, with an interactive 3D scatter of odds vs. win rate.',
-    tags: ['Python', 'Pandas', 'Plotly'],
-    source: 'https://github.com/EricHibbsGH/Inside-the-Numbers-Unveiling-Insights-from-MLB-Data',
-    demo: 'https://erichibbsgh.github.io/Inside-the-Numbers-Unveiling-Insights-from-MLB-Data/',
-    image: './projects/mlb.png',
-  },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -233,31 +225,32 @@ export const projects = [
 /* ------------------------------------------------------------------ */
 export const paper = {
   kind: 'misc',
-  title: 'Overlapping, Not Approximating: Asynchronous-Style Speedup in Reasoning-RL Training and the Lossless Design of TLT',
+  title: 'Speeding Up LLM Reinforcement Learning with Idle GPU Time: An Independent Code Audit of TLT',
   authors: ['Eric Hibbs'],
   venue: 'Independent research paper',
-  venueShort: 'Independent analysis of TLT (ASPLOS ’26) · 2026',
+  venueShort: 'Independent code audit of TLT (ASPLOS ’26) · IEEE format · 2026',
   year: '2026',
   pages: '',
   doi: '',
-  bibKey: 'hibbs2026overlapping',
+  bibKey: 'hibbs2026tltaudit',
   status: 'Independent research',
   url: 'https://erichibbsgh.github.io/ASync-Mania/', // "Read Full Paper"
   pdfUrl: './paper.pdf', // "Download" + embedded preview
   embedPreview: true,
   abstract:
-    'Reinforcement-learning training of reasoning LLMs is throttled by a long-tail rollout problem: a handful of very long generations dominate each step while most workers sit idle. ' +
-    'TLT attacks this not by approximating the algorithm but by overlapping otherwise-idle work in time, with an Adaptive Drafter trained on idle GPUs and an Adaptive Rollout Engine that turns on speculative decoding exactly when the batch shrinks into its sweet spot. ' +
-    'This paper frames TLT around those asynchrony mechanisms, pairs each with its measured speedup and its implementation in the released code, develops a mathematical model of where the gains come from and why they saturate, and contrasts TLT’s lossless synchrony with the off-policy drift risked by fully asynchronous RL. ' +
-    'The thesis: you can capture async-style utilization gains without paying the correctness tax of async RL.',
+    'Training a reasoning LLM with reinforcement learning is slow because of one stage: rollout, where a few very long answers set the pace while many GPUs sit idle. ' +
+    'TLT (ASPLOS ’26) uses that idle time to train a small draft model, then uses it to speed up the remaining long answers with speculative decoding, reporting 1.7–2.1× faster training without changing the learning algorithm. ' +
+    'We traced eleven of its mechanisms to specific lines of the released code and found five places where the code differs from the paper; most importantly, online draft-model training ships switched off. ' +
+    'A small test of that training code shows that, under the pinned library versions, each token can see later tokens and other packed examples. ' +
+    'Using Amdahl’s law, we show the reported end-to-end gains imply a 1.9–2.6× rollout speedup, which matches the rollout speedups measured directly, and we turn the findings into deployment guidance.',
   contributions: [
-    'A 10-page analysis of TLT, an ASPLOS ’26 method that speeds up reasoning-model RL training 1.7–2.1× without changing results.',
-    'Traced 11 claims to exact lines in the released code and found 5 gaps between code and paper, including a core feature shipped disabled.',
-    'A math model showing the speedup needs a 1.9–2.6× faster generation phase, plus a deployment guide on cost, setup and checks.',
+    'A 12-page IEEE-format code audit of TLT, an ASPLOS ’26 method that speeds up reasoning-model RL training 1.7–2.1× without changing results.',
+    'Traced 11 mechanisms to exact lines in the released code and found 5 gaps between code and paper, including a core feature shipped disabled.',
+    'Showed with Amdahl’s law that the gains imply a 1.9–2.6× faster rollout, then wrote deployment guidance on cost, setup and monitoring.',
   ],
   highlights: [
     { value: '1.7–2.1×', label: 'Training speed-up analyzed' },
-    { value: '11', label: 'Claims traced to code' },
+    { value: '11', label: 'Mechanisms traced to code' },
     { value: '5', label: 'Code vs. paper gaps found' },
   ],
 };
