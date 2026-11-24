@@ -15,7 +15,7 @@
   --panel: rgba(255, 255, 255, 0.97);
   --accent: #b5532f;
   --accent-ink: #8f3d1f;
-  --accent-soft: #f6e6e0;
+  --accent-soft: #ffffff;
   --green: #4f7a52;
   --blue: #3d5a73;
 
@@ -345,7 +345,7 @@ kbd {
   border: 0;
   border-radius: 999px;
   background: var(--ink);
-  color: #fbf6ec;
+  color: #ffffff;
   font: 400 0.95rem/1 var(--font-sans);
   box-shadow: var(--shadow);
   cursor: pointer;
@@ -3397,5 +3397,46 @@ kbd {
 @media (max-width: 760px) {
   .modal.modal--resume {
     width: 100%;
+  }
+}
+
+/* ---- Recruiter shortcuts in the top bar ---- */
+.topbar a.hud-chip {
+  text-decoration: none;
+}
+.topbar .hud-chip[hidden] {
+  display: none;
+}
+.topbar .hud-chip--cta,
+.topbar .hud-chip--cta:hover {
+  background: var(--hud-accent);
+  border-color: var(--hud-accent);
+  color: #121212;
+}
+.topbar .hud-chip--cta:hover {
+  background: #ea8a60;
+  border-color: #ea8a60;
+}
+.badge {
+  border: 1px solid var(--accent);
+}
+.hib-step-pill.is-done .hib-step-num {
+  background: #fff;
+}
+/* Keep the bar on one line: drop secondary labels before the nav has to scroll. */
+@media (max-width: 1360px) {
+  .topbar-role,
+  .topbar-divider {
+    display: none;
+  }
+  .topbar #btn-mute .label,
+  .topbar #btn-controls .label {
+    display: none;
+  }
+  .topbar #btn-mute,
+  .topbar #btn-controls {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
   }
 }

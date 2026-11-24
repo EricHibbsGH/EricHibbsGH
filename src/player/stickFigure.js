@@ -4,9 +4,14 @@ import { createBlobShadowTexture } from '../scene/textures.js';
 
 /*
  * The hand-drawn stick figure (circle head, line body, V arms, inverted-V legs),
- * built from flat vector meshes on a camera-facing billboard: a cream halo stroke
+ * built from flat vector meshes on a camera-facing billboard: a white halo stroke
  * behind a black ink stroke. Joints are moved every frame — no texture uploads —
- * so it stays razor sharp at any distance and animates smoothly at full frame rate.
+ * so it stays razor sharp at any distance and animates at full frame rate.
+ *
+ * Shadows: a third copy of the strokes is flattened onto the floor every frame with
+ * a planar projection matrix from a key light above the figure. That is the shadow a
+ * ray traced from that light would produce, at the cost of a few extra triangles.
+ * A soft contact shadow sits under the feet for grounding.
  *
  * Layout values are in "drawing units" taken from the reference sketch
  * (feet at FOOT_Y, 1 unit = K metres → the figure stands ≈ 1.75 m tall).
@@ -21,6 +26,8 @@ const ARM_LEN = 172;
 const LEG_LEN = 160;
 const INK_W = 9 * K;
 const HALO_W = 20 * K;
+const SHADOW_OPACITY = 0.38;
+const FLOOR_Y = 0.006;
 
 const X = (px) => (px - CX) * K;
 const Y = (py) => (FOOT_Y - py) * K;
@@ -32,18 +39,23 @@ export class StickFigure {
     this.billboard = new THREE.Group();
     this.root.add(this.billboard);
 
+    // Projected shadow lives in world space; main.js adds it to the scene.
+    this.shadowRig = new THREE.Group();
+    this.shadowRig.matrixAutoUpdate = false;
+    this.shadowMatrix = new THREE.Matrix4();
+    this.keyLight = new THREE.Vector3();
+
     const segGeo = new THREE.PlaneGeometry(1, 1);
     segGeo.translate(0, 0.5, 0); // unit stroke running from the origin along +Y
     const capGeo = new THREE.CircleGeometry(0.5, 20);
 
-    const makeLayer = (color, width, z, order) => {
-      const mat = new THREE.MeshBasicMaterial({ color, toneMapped: false });
+    const makeLayer = (mat, width, z, order, parent) => {
       const mk = (geo) => {
         const m = new THREE.Mesh(geo, mat);
         m.position.z = z;
         m.renderOrder = order;
         m.frustumCulled = false;
-        this.billboard.add(m);
+        parent.add(m);
         return m;
       };
       const ringGeo = new THREE.RingGeometry(HEAD_R * K - width / 2, HEAD_R * K + width / 2, 72);
@@ -55,15 +67,36 @@ export class StickFigure {
         caps: Array.from({ length: 6 }, () => mk(capGeo)), // neck, hip, handL, handR, footL, footR
       };
     };
-    this.layers = [makeLayer('#fbf3e4', HALO_W, 0, 2), makeLayer('#141210', INK_W, 0.004, 3)];
 
-    this.shadow = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.95, 0.95),
+    // Stencil makes overlapping strokes darken the floor exactly once.
+    this.shadowMat = new THREE.MeshBasicMaterial({
+      color: '#000000',
+      transparent: true,
+      opacity: SHADOW_OPACITY,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      stencilWrite: true,
+      stencilRef: 1,
+      stencilFunc: THREE.NotEqualStencilFunc,
+      stencilZPass: THREE.ReplaceStencilOp,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -2,
+    });
+
+    this.layers = [
+      makeLayer(new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }), HALO_W, 0, 2, this.billboard),
+      makeLayer(new THREE.MeshBasicMaterial({ color: '#141210', toneMapped: false }), INK_W, 0.004, 3, this.billboard),
+      makeLayer(this.shadowMat, INK_W * 1.25, 0, 1, this.shadowRig),
+    ];
+
+    this.contact = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.7, 0.7),
       new THREE.MeshBasicMaterial({ map: createBlobShadowTexture(), transparent: true, depthWrite: false }),
     );
-    this.shadow.rotation.x = -Math.PI / 2;
-    this.shadow.renderOrder = 1;
-    this.root.add(this.shadow);
+    this.contact.rotation.x = -Math.PI / 2;
+    this.contact.renderOrder = 1;
+    this.root.add(this.contact);
 
     this.phase = 0;
     this.time = 0;
@@ -116,19 +149,50 @@ export class StickFigure {
     // Fast settle so the figure plants its feet the moment you let go.
     for (const k of Object.keys(this.pose)) this.pose[k] = damp(this.pose[k], t[k], grounded ? 22 : 14, dt);
 
+    // Contact shadow tightens and fades as the figure leaves the floor.
     const h = this.root.position.y;
-    this.shadow.position.y = -h + 0.012;
+    this.contact.position.y = -h + 0.012;
     const sc = 1 - Math.min(0.45, h * 0.35);
-    this.shadow.scale.set(sc, sc, sc);
-    this.shadow.material.opacity = 1 - Math.min(0.6, h * 0.5);
+    this.contact.scale.set(sc, sc, sc);
+    this.contact.material.opacity = 1 - Math.min(0.7, h * 0.6);
+    this.shadowMat.opacity = SHADOW_OPACITY * (1 - Math.min(0.5, h * 0.25));
 
     this.#apply();
   }
 
-  /** Cylindrical billboard: keep the drawing turned toward the camera. */
+  /**
+   * Keep the drawing turned toward the camera, then cast its shadow. The key light
+   * sits above the figure, slightly toward the camera and to one side, so the
+   * shadow falls behind the figure where it reads clearly.
+   */
   faceCamera(camera) {
     const p = this.root.position;
-    this.billboard.rotation.y = Math.atan2(camera.position.x - p.x, camera.position.z - p.z);
+    const dx = camera.position.x - p.x;
+    const dz = camera.position.z - p.z;
+    this.billboard.rotation.y = Math.atan2(dx, dz);
+    this.root.updateMatrixWorld(true);
+
+    const len = Math.hypot(dx, dz) || 1;
+    const fx = dx / len;
+    const fz = dz / len;
+    this.keyLight.set(p.x + fx * 1.0 - fz * 1.5, 4.2, p.z + fz * 1.0 + fx * 1.5);
+    this.#projectShadow();
+  }
+
+  /** Planar projection of the strokes onto the floor plane y = FLOOR_Y from the key light. */
+  #projectShadow() {
+    const { x, y, z } = this.keyLight;
+    const h = FLOOR_Y;
+    const d = y - h; // plane · light
+    // M = (P·L) I − L Pᵀ, with P = (0, 1, 0, −h) and L = (x, y, z, 1)
+    this.shadowMatrix.set(
+      d, -x, 0, x * h,
+      0, d - y, 0, y * h,
+      0, -z, d, z * h,
+      0, -1, 0, d + h,
+    );
+    this.shadowRig.matrix.multiplyMatrices(this.shadowMatrix, this.billboard.matrixWorld);
+    this.shadowRig.matrixWorldNeedsUpdate = true;
   }
 
   #apply() {
@@ -164,11 +228,11 @@ export class StickFigure {
         const m = layer.segs[i];
         const [ax, ay] = pts[a];
         const [bx, by] = pts[b];
-        const dx = bx - ax;
-        const dyy = by - ay;
+        const ddx = bx - ax;
+        const ddy = by - ay;
         m.position.set(ax, ay, layer.z);
-        m.rotation.z = Math.atan2(-dx, dyy);
-        m.scale.set(layer.width, Math.hypot(dx, dyy), 1);
+        m.rotation.z = Math.atan2(-ddx, ddy);
+        m.scale.set(layer.width, Math.hypot(ddx, ddy), 1);
       });
       capKeys.forEach((k, i) => {
         const m = layer.caps[i];

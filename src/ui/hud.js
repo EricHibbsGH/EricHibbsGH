@@ -9,9 +9,17 @@ import { el } from './dom.js';
  * The mini-map (bottom-right) lives in minimap.js.
  */
 export class Hud {
-  constructor({ site, exhibits, muted, onTravel, onInteract, onToggleMute }) {
+  constructor({ site, exhibits, contactHref, resumeUrl, muted, onTravel, onInteract, onToggleMute }) {
     document.getElementById('hud-brand').textContent = site.owner;
     document.getElementById('hud-role').textContent = site.role;
+
+    // Recruiter shortcuts: reach out or grab the resume without walking the room.
+    const contact = document.getElementById('btn-contact');
+    const resumeLink = document.getElementById('btn-resume');
+    if (contactHref) contact.href = contactHref;
+    else contact.hidden = true;
+    if (resumeUrl) resumeLink.href = resumeUrl;
+    else resumeLink.hidden = true;
 
     this.navButtons = new Map();
     const nav = document.getElementById('qt-nav');

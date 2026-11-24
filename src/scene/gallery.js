@@ -20,8 +20,8 @@ export const ROOM = { width: 18, depth: 22, height: 4.6 };
 const WAINSCOT_H = 1.0;
 
 /**
- * A warm, lived-in salon gallery: oak floor, sage plaster over cream wainscoting,
- * timber ceiling beams, lamps, a rug, sofa, reading chair, bookshelf and plants.
+ * A warm salon gallery dressed for the holidays: oak floor, sage plaster over white
+ * wainscoting, timber beams, a lounge, a reading nook, a decorated tree and garlands.
  * Returns world bounds and AABB colliders used by the player controller.
  */
 export function buildGallery(world, { renderer, site }) {
@@ -34,7 +34,7 @@ export function buildGallery(world, { renderer, site }) {
   const updaters = [];
   const rand = mulberry32(2024);
 
-  world.background = new THREE.Color('#3a2e25');
+  world.background = new THREE.Color('#121212');
   world.fog = null;
 
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -57,16 +57,32 @@ export function buildGallery(world, { renderer, site }) {
     iron: std('#2c2520', 0.5, 0.4),
     rust: std('#a24f2c', 0.95, 0, { map: fabric }),
     mustard: std('#c4923a', 0.95, 0, { map: fabric }),
-    linen: std('#efe6d2', 0.95, 0, { map: fabric }),
+    linen: std('#f2f1ee', 0.95, 0, { map: fabric }),
     moss: std('#5f7550', 0.95, 0, { map: fabric }),
+    charcoal: std('#2e2f33', 0.9, 0, { map: fabric }),
     terracotta: std('#b5603b', 0.85),
     soil: std('#3b2a1f', 1),
     leaf: std('#4f7a3a', 0.7, 0, { side: THREE.DoubleSide }),
     leafDark: std('#3b6030', 0.7, 0, { side: THREE.DoubleSide }),
     leafLight: std('#6d9549', 0.7, 0, { side: THREE.DoubleSide }),
-    ceramic: std('#e7ddca', 0.35),
+    ceramic: std('#f0efec', 0.35),
     door: std('#6b4528', 0.55, 0, { map: wood }),
+    // Holiday
+    fir: std('#1d4a2e', 0.9),
+    firLight: std('#285c39', 0.9),
+    velvet: std('#7d1820', 0.85, 0, { map: fabric }),
+    wax: std('#f4f3ef', 0.6),
+    giftRed: std('#9b1d26', 0.55),
+    giftGreen: std('#1f4d36', 0.55),
+    giftWhite: std('#f3f3f1', 0.55),
+    gold: std('#c9a14a', 0.28, 0.85),
   };
+
+  // Every warm light point (tree lights, garland bulbs, candle flames) is collected here
+  // and drawn as one instanced mesh. Colours are HDR (> 1) so only they feed the bloom.
+  const bulbs = [];
+  const glows = []; // larger soft halos: pendants, lamp shades, the star
+  const toWorldFront = (x, y, z) => [-x, y, halfD - z]; // front-wall group local → world
 
   const mesh = (geo, mat, { cast = true, receive = true } = {}) => {
     const m = new THREE.Mesh(geo, mat);
@@ -180,9 +196,47 @@ export function buildGallery(world, { renderer, site }) {
       // Curtain rod + linen curtains
       cyl(g, 0.018, 0.018, 2.4, M.brass, wx, 3.42, 0.2, 10, { cast: false }).rotation.z = Math.PI / 2;
       for (const side of [-1, 1]) {
-        const curtain = box(g, 0.42, 2.9, 0.06, side < 0 ? M.linen : M.linen, wx + side * 1.0, 1.98, 0.2);
+        const curtain = box(g, 0.42, 2.9, 0.06, M.linen, wx + side * 1.0, 1.98, 0.2);
         curtain.castShadow = false;
       }
+      // Three pillar candles on the sill
+      [[-0.42, 0.2], [-0.28, 0.14], [0.36, 0.17]].forEach(([dx, h]) => {
+        cyl(g, 0.035, 0.035, h, M.wax, wx + dx, 1.395 + h / 2, 0.13, 16);
+        bulbs.push({ p: toWorldFront(wx + dx, 1.395 + h + 0.03, 0.13), s: 0.022, c: 'flame' });
+      });
+      garland(g, wx, 3.32, 0.9);
+    }
+
+    garland(g, 0, 2.6, 0.75);
+    // Wreath on the door
+    const wreath = mesh(new THREE.TorusGeometry(0.27, 0.085, 10, 36), M.fir);
+    wreath.position.set(0, 1.78, 0.2);
+    g.add(wreath);
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * Math.PI * 2;
+      const berry = mesh(new THREE.SphereGeometry(0.03, 10, 8), M.giftRed, { cast: false });
+      berry.position.set(Math.cos(a) * 0.27, 1.78 + Math.sin(a) * 0.27, 0.27);
+      g.add(berry);
+    }
+    for (const sx of [-1, 1]) {
+      const loop = box(g, 0.14, 0.09, 0.03, M.velvet, sx * 0.08, 1.5, 0.29, { round: 0.03 });
+      loop.rotation.z = sx * 0.35;
+    }
+  }
+
+  /** A sagging fir garland with warm bulbs, in front-wall local coordinates. */
+  function garland(g, cx, y, halfSpan) {
+    const pts = [];
+    for (let i = 0; i <= 12; i++) {
+      const t = i / 12;
+      const x = cx - halfSpan + t * halfSpan * 2;
+      pts.push(new THREE.Vector3(x, y - Math.sin(t * Math.PI) * 0.22, 0.24));
+    }
+    const curve = new THREE.CatmullRomCurve3(pts);
+    g.add(mesh(new THREE.TubeGeometry(curve, 40, 0.055, 7, false), M.fir, { cast: false }));
+    for (let i = 1; i < 12; i++) {
+      const p = curve.getPoint(i / 12);
+      bulbs.push({ p: toWorldFront(p.x, p.y - 0.03, p.z + 0.05), s: 0.02, c: 'warm' });
     }
   }
 
@@ -237,9 +291,9 @@ export function buildGallery(world, { renderer, site }) {
     g.add(sprig);
     collide(5.55, 5.2, 0.38, 0.68, 'table');
   }
-  // Mustard armchair facing the sofa
-  sofa(3.7, 6.6, Math.PI / 2 + 0.35, { length: 1.05, fabric: M.mustard, pillows: [M.linen] });
-  collide(3.7, 6.6, 0.55, 0.55, 'chair');
+  // Armchair squared up across the coffee table from the sofa
+  sofa(3.95, 5.2, Math.PI / 2, { length: 1.05, fabric: M.mustard, pillows: [M.linen] });
+  collide(3.95, 5.2, 0.55, 0.55, 'chair');
 
   // Floor lamp beside the sofa
   function floorLamp(x, z) {
@@ -253,6 +307,7 @@ export function buildGallery(world, { renderer, site }) {
     );
     shade.position.y = 1.62;
     g.add(shade);
+    glows.push([x, 1.6, z]);
     const light = new THREE.PointLight('#ffc27a', 5, 7, 2);
     light.position.set(x, 1.52, z);
     world.add(light);
@@ -306,8 +361,9 @@ export function buildGallery(world, { renderer, site }) {
   bookshelf(-halfW + 0.22, 6.5, Math.PI / 2);
   collide(-halfW + 0.22, 6.5, 0.24, 1.35, 'shelf');
 
-  sofa(-6.2, 3.6, 2.35, { length: 1.05, fabric: M.moss, pillows: [M.mustard] });
-  collide(-6.2, 3.6, 0.6, 0.6, 'chair');
+  // Reading chair beside the shelf, square to the wall
+  sofa(-6.9, 3.7, Math.PI / 2, { length: 1.05, fabric: M.moss, pillows: [M.linen] });
+  collide(-6.9, 3.7, 0.55, 0.55, 'chair');
   {
     const g = placed(-7.55, 2.4);
     cyl(g, 0.3, 0.3, 0.04, M.walnut, 0, 0.58, 0, 28);
@@ -321,22 +377,20 @@ export function buildGallery(world, { renderer, site }) {
     );
     shade.position.set(0.06, 0.92, 0);
     g.add(shade);
+    glows.push([-7.49, 0.92, 2.4]);
     const l = new THREE.PointLight('#ffc27a', 2.8, 4.5, 2);
     l.position.set(-7.49, 0.88, 2.4);
     world.add(l);
     collide(-7.55, 2.4, 0.32, 0.32, 'table');
   }
 
-  // Central viewing bench (oak slats)
+  // Central gallery bench: upholstered top on an oak frame, facing the back wall
   {
     const g = placed(0, 0.5);
-    for (const z of [-0.16, 0, 0.16]) box(g, 2.2, 0.045, 0.13, M.oak, 0, 0.44, z, { round: 0.015 });
-    for (const sx of [-0.95, 0.95]) {
-      box(g, 0.05, 0.42, 0.05, M.iron, sx, 0.21, -0.18);
-      box(g, 0.05, 0.42, 0.05, M.iron, sx, 0.21, 0.18);
-      box(g, 0.05, 0.05, 0.42, M.iron, sx, 0.1, 0);
-    }
-    collide(0, 0.5, 1.15, 0.28, 'bench');
+    box(g, 2.3, 0.14, 0.6, M.charcoal, 0, 0.45, 0, { round: 0.05 });
+    box(g, 2.2, 0.06, 0.52, M.oak, 0, 0.35, 0, { round: 0.015 });
+    for (const sx of [-1.02, 1.02]) for (const sz of [-0.2, 0.2]) box(g, 0.06, 0.32, 0.06, M.oak, sx, 0.16, sz, { round: 0.01 });
+    collide(0, 0.5, 1.2, 0.34, 'bench');
   }
 
   // Potted plants
@@ -373,9 +427,101 @@ export function buildGallery(world, { renderer, site }) {
   }
   plant(-halfW + 0.7, -halfD + 0.7, 1.15);
   plant(halfW - 0.7, -halfD + 0.7, 1.05);
-  plant(halfW - 0.7, halfD - 0.7, 1.2);
   plant(-halfW + 0.7, halfD - 0.7, 0.95);
-  plant(-7.6, 1.6, 0.7);
+
+  christmasTree(halfW - 1.55, halfD - 1.6);
+
+  /** Decorated fir: stacked boughs, ornaments, a spiral of warm lights, a star and gifts. */
+  function christmasTree(x, z) {
+    const g = placed(x, z);
+    cyl(g, 0.95, 0.95, 0.03, M.velvet, 0, 0.015, 0, 40, { cast: false }); // tree skirt
+    cyl(g, 0.09, 0.11, 0.6, M.walnut, 0, 0.3, 0, 12);
+
+    const tiers = [];
+    for (let i = 0; i < 7; i++) {
+      const t = i / 7;
+      const y0 = 0.35 + t * 2.6;
+      const r = 1.21 * (1 - t) + 0.12;
+      const h = 0.75 - t * 0.25;
+      tiers.push({ y0, r, h });
+      const cone = mesh(new THREE.ConeGeometry(r, h, 22, 1), i % 2 ? M.firLight : M.fir);
+      cone.position.y = y0 + h / 2;
+      cone.rotation.y = rand() * Math.PI;
+      g.add(cone);
+    }
+    // Outer surface radius at a height = the widest bough covering it.
+    const surface = (y) => tiers.reduce((best, { y0, r, h }) => (y >= y0 && y <= y0 + h ? Math.max(best, r * (1 - (y - y0) / h)) : best), 0.1);
+
+    const ornaments = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 16, 12), std('#ffffff', 0.22, 0.55), 56);
+    const m4 = new THREE.Matrix4();
+    const q = new THREE.Quaternion();
+    const c = new THREE.Color();
+    const palette = ['#a3151f', '#c9a14a', '#f2f2f0', '#7d1820', '#d8b35c'];
+    for (let i = 0; i < 56; i++) {
+      const y = 0.55 + rand() * 2.45;
+      const r = surface(y) * 0.94;
+      const a = rand() * Math.PI * 2;
+      const s = 0.045 + rand() * 0.035;
+      m4.compose(new THREE.Vector3(Math.cos(a) * r, y - s, Math.sin(a) * r), q, new THREE.Vector3(s, s, s));
+      ornaments.setMatrixAt(i, m4);
+      ornaments.setColorAt(i, c.set(palette[i % palette.length]));
+    }
+    ornaments.castShadow = true;
+    g.add(ornaments);
+
+    // Spiral of lights
+    for (let k = 0; k < 150; k++) {
+      const t = k / 150;
+      const y = 0.6 + t * 2.45;
+      const a = t * Math.PI * 2 * 7;
+      const r = surface(y) + 0.02;
+      bulbs.push({ p: [x + Math.cos(a) * r, y, z + Math.sin(a) * r], s: 0.022, c: 'warm' });
+    }
+
+    // Star, turned to face the middle of the room
+    const star = new THREE.Shape();
+    for (let i = 0; i < 10; i++) {
+      const rr = i % 2 ? 0.085 : 0.2;
+      const a = Math.PI / 2 + (i * Math.PI) / 5;
+      if (i) star.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      else star.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    const starMesh = mesh(
+      new THREE.ExtrudeGeometry(star, { depth: 0.04, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.01, bevelSegments: 2 }),
+      std('#d8b35c', 0.3, 0.7, { emissive: '#ffcf70', emissiveIntensity: 3 }),
+      { cast: false },
+    );
+    starMesh.position.set(0, 3.32, 0);
+    starMesh.rotation.y = Math.atan2(-x, -z);
+    g.add(starMesh);
+    glows.push([x, 3.34, z]);
+
+    // Wrapped gifts, on the side facing the room
+    const gift = (lx, lz, w, h, d, mat, rotY) => {
+      const p = new THREE.Group();
+      p.position.set(lx, 0, lz);
+      p.rotation.y = rotY;
+      g.add(p);
+      box(p, w, h, d, mat, 0, h / 2, 0, { round: 0.012 });
+      box(p, w + 0.012, h + 0.012, 0.05, M.gold, 0, h / 2, 0, { cast: false });
+      box(p, 0.05, h + 0.012, d + 0.012, M.gold, 0, h / 2, 0, { cast: false });
+      for (const sx of [-1, 1]) {
+        const bow = box(p, 0.11, 0.06, 0.03, M.gold, sx * 0.05, h + 0.03, 0, { round: 0.02, cast: false });
+        bow.rotation.z = sx * 0.5;
+      }
+    };
+    gift(-1.0, -0.35, 0.42, 0.32, 0.36, M.giftRed, 0.3);
+    gift(-0.72, -0.92, 0.34, 0.42, 0.34, M.giftWhite, -0.2);
+    gift(-1.25, 0.3, 0.3, 0.24, 0.3, M.giftGreen, 0.6);
+    gift(-0.15, -1.1, 0.48, 0.26, 0.38, M.giftGreen, 0.1);
+    gift(0.38, -1.02, 0.28, 0.34, 0.28, M.giftRed, -0.4);
+
+    // Warm glow from inside the boughs onto the floor and walls
+    const glow = new THREE.PointLight('#ffb36b', 4, 6, 2);
+    glow.position.set(x, 1.7, z);
+    world.add(glow);
+    collide(x, z, 1.25, 1.25, 'tree');
+  }
 
   /* ---------------------------------------------------- salon-hang art */
   const smallFrameMats = [M.walnut, M.brass, std('#2f2622', 0.5)];
@@ -431,21 +577,24 @@ export function buildGallery(world, { renderer, site }) {
     );
     shade.position.set(x, H - drop - 0.02, z);
     scene.add(shade);
-    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 12), new THREE.MeshBasicMaterial({ color: '#ffe2b0', toneMapped: false }));
+    const bulbMat = new THREE.MeshBasicMaterial();
+    bulbMat.color.setRGB(3.2, 2.5, 1.6); // HDR so the bulb blooms
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 12), bulbMat);
     bulb.position.set(x, H - drop - 0.06, z);
     scene.add(bulb);
+    glows.push([x, H - drop - 0.08, z]);
   }
   pendant(0, -5.5);
   pendant(0, 0.5);
   pendant(0, 6.5);
 
   /* --------------------------------------------------------- lights */
-  world.add(new THREE.HemisphereLight('#ffe8cc', '#5b4030', 0.85));
-  world.add(new THREE.AmbientLight('#ffd9b0', 0.08));
-
-  // Low, warm "late afternoon" light from the windows — gives everything soft shadows.
-  const sun = new THREE.DirectionalLight('#ffd2a1', 0.55);
-  sun.position.set(-6, 9, 16);
+  // Evening rig: warm interior fill, cool moonlight through the front windows for
+  // contrast and soft shadows. The art is keyed by its own spotlights (frames.js).
+  world.add(new THREE.HemisphereLight('#fff1e0', '#3b2c22', 0.75));
+  world.add(new THREE.AmbientLight('#ffe6cc', 0.05));
+  const sun = new THREE.DirectionalLight('#aabdff', 0.4);
+  sun.position.set(-4, 8, 18);
   sun.target.position.set(0, 0, -2);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -460,6 +609,49 @@ export function buildGallery(world, { renderer, site }) {
   sun.shadow.normalBias = 0.03;
   sun.shadow.radius = 5;
   world.add(sun, sun.target);
+
+  // Every warm bulb in the room in a single instanced draw.
+  if (bulbs.length) {
+    const lights = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), new THREE.MeshBasicMaterial(), bulbs.length);
+    const m4 = new THREE.Matrix4();
+    const q = new THREE.Quaternion();
+    const c = new THREE.Color();
+    bulbs.forEach((b, i) => {
+      const flame = b.c === 'flame';
+      m4.compose(new THREE.Vector3(...b.p), q, new THREE.Vector3(b.s, flame ? b.s * 1.8 : b.s, b.s));
+      lights.setMatrixAt(i, m4);
+      lights.setColorAt(i, flame ? c.setRGB(5, 3.1, 1.1) : c.setRGB(4.2, 3, 1.6));
+    });
+    world.add(lights);
+  }
+
+  // Bloom without post-processing: a soft additive halo on every light source.
+  // Two draw calls instead of a full-screen pass, so the frame rate is untouched.
+  const glowTex = createGlowTexture();
+  const halo = (points, size, color, opacity) => {
+    if (!points.length) return;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(points.flat(), 3));
+    const pts = new THREE.Points(
+      geo,
+      new THREE.PointsMaterial({
+        map: glowTex,
+        color,
+        size,
+        sizeAttenuation: true,
+        transparent: true,
+        opacity,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        toneMapped: false,
+      }),
+    );
+    pts.renderOrder = 5;
+    pts.frustumCulled = false;
+    world.add(pts);
+  };
+  halo(bulbs.map((b) => b.p), 0.3, '#ffb468', 0.5);
+  halo(glows, 1.3, '#ffc98a', 0.32);
 
   mergeStatic(scene, world);
 
@@ -527,4 +719,21 @@ function mergeStatic(group, world) {
     mesh.matrixAutoUpdate = false;
     world.add(mesh);
   }
+}
+
+/** Soft radial falloff used for the light halos. */
+function createGlowTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.2, 'rgba(255,255,255,0.5)');
+  g.addColorStop(0.55, 'rgba(255,255,255,0.12)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
 }

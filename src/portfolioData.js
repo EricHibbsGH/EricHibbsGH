@@ -16,10 +16,10 @@
 export const site = {
   title: 'Eric Hibbs',
   owner: 'Eric Hibbs',
-  role: 'Interactive designer & AI product builder',
+  role: 'HCI Developer & Product Owner',
   wallTagline: 'Digital Narrative & Interactive Design - University of Pittsburgh, 2025',
   intro:
-    'I design and build AI products, from raw data to working prototypes. Walk through the gallery to see my resume, projects, research and the way I think about systems.',
+    'I lead human-centered AI products from research to release, pairing HCI methods with product ownership so what ships is measurably easier to use. Walk the gallery for my resume, projects, research and design process.',
 };
 
 /**
@@ -86,7 +86,7 @@ export const exhibits = [
 /* ------------------------------------------------------------------ */
 export const resume = {
   name: 'Eric Hibbs',
-  headline: 'Interactive designer & AI product builder',
+  headline: 'HCI Developer & Product Owner',
   location: 'Atlanta, GA',
   avatar: null, // e.g. './art/avatar.jpg' — null shows initials
   pdfUrl: './resume.pdf',

@@ -18,7 +18,7 @@ export const PALETTE = {
   green: '#4f7a52',
   gold: '#c99a3e',
   muted: '#8f857a',
-  line: '#e2d8c6',
+  line: '#e3e3e3',
 };
 
 const SERIF = 'Georgia, "Times New Roman", Times, serif';
@@ -265,7 +265,7 @@ function drawPaper(ctx, W, H, rand) {
 
   // Abstract box
   const ay = m + W * 0.2;
-  ctx.fillStyle = '#f6f4ef';
+  ctx.fillStyle = '#f5f5f5';
   ctx.fillRect(m, ay, W - m * 2, W * 0.27);
   ctx.font = `700 ${W * 0.024}px ${SANS}`;
   ctx.fillStyle = PALETTE.ink;
@@ -622,24 +622,29 @@ export function createRugTexture(renderer) {
   return toTexture(canvas, renderer);
 }
 
-/** Evening view for the windows: dusky gradient, hills and a few trees. */
+/** Winter night through the windows: deep blue sky, moon, snowy hills, pines and falling snow. */
 export function createWindowTexture(renderer) {
   const W = 512;
   const H = 620;
   const [canvas, ctx] = makeCanvas(W, H);
   const rand = mulberry32(3);
   const sky = ctx.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, '#34466e');
-  sky.addColorStop(0.45, '#9a6f86');
-  sky.addColorStop(0.72, '#e79f72');
-  sky.addColorStop(1, '#f6c98e');
+  sky.addColorStop(0, '#0b1424');
+  sky.addColorStop(0.55, '#1c2d4a');
+  sky.addColorStop(1, '#3a5274');
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, W, H);
-  for (let i = 0; i < 26; i++) {
-    ctx.fillStyle = `rgba(255,250,235,${0.3 + rand() * 0.5})`;
-    ctx.fillRect(rand() * W, rand() * H * 0.35, 2, 2);
+  for (let i = 0; i < 40; i++) {
+    ctx.fillStyle = `rgba(235,242,255,${0.25 + rand() * 0.55})`;
+    ctx.fillRect(rand() * W, rand() * H * 0.45, 1.6, 1.6);
   }
-  circle(ctx, W * 0.72, H * 0.5, 34, 'rgba(255,236,200,0.9)');
+  const moon = ctx.createRadialGradient(W * 0.7, H * 0.22, 0, W * 0.7, H * 0.22, 70);
+  moon.addColorStop(0, 'rgba(235,242,255,0.95)');
+  moon.addColorStop(0.35, 'rgba(220,232,255,0.9)');
+  moon.addColorStop(0.42, 'rgba(180,200,240,0.25)');
+  moon.addColorStop(1, 'rgba(120,150,210,0)');
+  ctx.fillStyle = moon;
+  ctx.fillRect(0, 0, W, H);
   const hill = (base, amp, color, seed) => {
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -649,22 +654,36 @@ export function createWindowTexture(renderer) {
     ctx.closePath();
     ctx.fill();
   };
-  hill(H * 0.66, 22, '#7c5a6a', 1);
-  hill(H * 0.76, 18, '#4e3b4b', 3);
-  // Trees
-  ctx.fillStyle = '#2e2430';
-  for (let i = 0; i < 7; i++) {
+  hill(H * 0.66, 22, '#b9c6dc', 1);
+  hill(H * 0.76, 18, '#d6dfec', 3);
+  // Snow-dusted pines
+  for (let i = 0; i < 8; i++) {
     const tx = rand() * W;
-    const ty = H * (0.78 + rand() * 0.05);
-    const th = 50 + rand() * 60;
+    const ty = H * (0.8 + rand() * 0.05);
+    const th = 60 + rand() * 70;
+    ctx.fillStyle = '#16233a';
     ctx.beginPath();
     ctx.moveTo(tx, ty - th);
-    ctx.lineTo(tx + th * 0.22, ty);
-    ctx.lineTo(tx - th * 0.22, ty);
+    ctx.lineTo(tx + th * 0.24, ty);
+    ctx.lineTo(tx - th * 0.24, ty);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = 'rgba(240,245,255,0.85)';
+    ctx.beginPath();
+    ctx.moveTo(tx, ty - th);
+    ctx.lineTo(tx + th * 0.08, ty - th * 0.66);
+    ctx.lineTo(tx - th * 0.08, ty - th * 0.66);
     ctx.closePath();
     ctx.fill();
   }
-  hill(H * 0.86, 10, '#2a2129', 5);
+  hill(H * 0.88, 10, '#eef2f8', 5);
+  // Falling snow
+  for (let i = 0; i < 160; i++) {
+    ctx.fillStyle = `rgba(255,255,255,${0.35 + rand() * 0.55})`;
+    ctx.beginPath();
+    ctx.arc(rand() * W, rand() * H, 0.8 + rand() * 1.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
   return toTexture(canvas, renderer);
 }
 
@@ -674,7 +693,7 @@ export function createSmallArtTexture(seed, aspect, renderer) {
   const H = Math.round(W / aspect);
   const [canvas, ctx] = makeCanvas(W, H);
   const rand = mulberry32(seed * 131 + 7);
-  const papers = ['#f1e6cf', '#ead9bd', '#f4ede0'];
+  const papers = ['#ffffff', '#f7f7f6', '#fafafa'];
   ctx.fillStyle = papers[seed % papers.length];
   ctx.fillRect(0, 0, W, H);
   const style = seed % 4;
@@ -778,7 +797,7 @@ export function createPlaqueTexture(exhibit, renderer) {
   ctx.textAlign = 'center';
   ctx.fillText('E', 92, H - 44);
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#fbf6ec';
+  ctx.fillStyle = '#ffffff';
   ctx.font = `48px ${SANS}`;
   ctx.fillText(exhibit.prompt, 150, H - 42);
   return toTexture(canvas, renderer);
@@ -804,11 +823,11 @@ export function projectThumbnail(title, index) {
   const [canvas, ctx] = makeCanvas(W, H);
   const rand = mulberry32(index * 97 + title.length * 13 + 5);
   const schemes = [
-    ['#17181c', PALETTE.accent, '#f3efe6'],
-    ['#f3efe6', PALETTE.ink, PALETTE.accent],
-    ['#1f2a44', '#7aa2ff', '#f3efe6'],
-    ['#f6ede4', '#2f9e6b', PALETTE.ink],
-    ['#201a1a', PALETTE.gold, '#f3efe6'],
+    ['#17181c', PALETTE.accent, '#ffffff'],
+    ['#ffffff', PALETTE.ink, PALETTE.accent],
+    ['#1f2a44', '#7aa2ff', '#ffffff'],
+    ['#f7f7f7', '#2f9e6b', PALETTE.ink],
+    ['#201a1a', PALETTE.gold, '#ffffff'],
     ['#eef1f6', PALETTE.blue, PALETTE.ink],
   ];
   const [bg, fg, ink] = schemes[index % schemes.length];

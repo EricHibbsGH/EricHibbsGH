@@ -1,6 +1,6 @@
 import './styles.css';
 import * as THREE from 'three';
-import { site, exhibits } from './portfolioData.js';
+import { site, exhibits, resume } from './portfolioData.js';
 import { Input } from './core/input.js';
 import { smoothstep, prefersReducedMotion } from './core/math.js';
 import { waitForFonts, createGuideArrowTexture } from './scene/textures.js';
@@ -51,6 +51,8 @@ document.getElementById('intro-copy').textContent = site.intro;
 const hud = new Hud({
   site,
   exhibits,
+  contactHref: resume.contact.find((c) => c.href.startsWith('mailto:'))?.href ?? '',
+  resumeUrl: resume.pdfUrl,
   muted: audio.muted,
   onTravel: (id) => travelTo(id),
   onInteract: () => interact(),
@@ -184,11 +186,10 @@ async function createWorld() {
   renderer.shadowMap.needsUpdate = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.NeutralToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  renderer.toneMappingExposure = 1.08;
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 120);
-
   await waitForFonts();
 
   const gallery = buildGallery(scene, { renderer, site });
@@ -197,7 +198,7 @@ async function createWorld() {
 
   const figure = new StickFigure();
   figure.root.position.copy(SPAWN);
-  scene.add(figure.root);
+  scene.add(figure.root, figure.shadowRig);
   figure.onStep = (s) => audio.footstep(s);
   figure.onLand = (s) => audio.land(s);
 
