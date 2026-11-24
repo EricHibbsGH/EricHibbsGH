@@ -198,19 +198,7 @@ async function createWorld() {
 
   const figure = new StickFigure();
   figure.root.position.copy(SPAWN);
-  scene.add(figure.root, figure.shadowRig);
-  // Shadows follow the room's real lights, including each painting's spotlight.
-  figure.setShadowLights([
-    ...gallery.shadowLights,
-    ...frames.map(({ spot }) => ({
-      kind: 'spot',
-      pos: spot.position.clone(),
-      dir: spot.target.position.clone().sub(spot.position).normalize(),
-      cosOuter: Math.cos(spot.angle),
-      cosInner: Math.cos(spot.angle * (1 - spot.penumbra)),
-      power: 5,
-    })),
-  ]);
+  scene.add(figure.root);
   figure.onStep = (s) => audio.footstep(s);
   figure.onLand = (s) => audio.land(s);
 
@@ -401,7 +389,7 @@ function startLoop(w) {
       focus = { point: focusFrame.center, weight: near * smoothstep(0.3, 0.85, inView) };
     }
     w.cam.update(dt, pos, state.camYawGoal, focus);
-    w.figure.faceCamera(w.camera, dt);
+    w.figure.faceCamera(w.camera);
 
     // Directional help: HUD pill + floor compass toward the nearest unseen exhibit.
     // Directions are given relative to the screen ("ahead" = away from the camera).

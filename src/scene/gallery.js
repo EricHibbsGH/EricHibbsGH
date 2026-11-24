@@ -83,7 +83,6 @@ export function buildGallery(world, { renderer, site, wallArt = {} }) {
   // and drawn as one instanced mesh. Colours are HDR (> 1) so only they feed the bloom.
   const bulbs = [];
   const glows = []; // larger soft halos: pendants, lamp shades, the star
-  const shadowLights = []; // sources the stick figure casts shadows from
   const toWorldFront = (x, y, z) => [-x, y, halfD - z]; // front-wall group local → world
 
   const mesh = (geo, mat, { cast = true, receive = true } = {}) => {
@@ -310,7 +309,6 @@ export function buildGallery(world, { renderer, site, wallArt = {} }) {
     shade.position.y = 1.62;
     g.add(shade);
     glows.push([x, 1.6, z]);
-    shadowLights.push({ kind: 'point', pos: new THREE.Vector3(x, 1.6, z), power: 4 });
     const light = new THREE.PointLight('#ffc27a', 5, 7, 2);
     light.position.set(x, 1.52, z);
     world.add(light);
@@ -378,7 +376,6 @@ export function buildGallery(world, { renderer, site, wallArt = {} }) {
     shade.position.set(0.06, 0.92, 0);
     g.add(shade);
     glows.push([-7.49, 0.92, 2.4]);
-    shadowLights.push({ kind: 'point', pos: new THREE.Vector3(-7.49, 0.92, 2.4), power: 2 });
     const l = new THREE.PointLight('#ffc27a', 2.8, 4.5, 2);
     l.position.set(-7.49, 0.88, 2.4);
     world.add(l);
@@ -521,7 +518,6 @@ export function buildGallery(world, { renderer, site, wallArt = {} }) {
     const glow = new THREE.PointLight('#ffb36b', 4, 6, 2);
     glow.position.set(x, 1.7, z);
     world.add(glow);
-    shadowLights.push({ kind: 'point', pos: glow.position.clone(), power: 3 });
     collide(x, z, 1.25, 1.25, 'tree');
   }
 
@@ -592,14 +588,6 @@ export function buildGallery(world, { renderer, site, wallArt = {} }) {
     s.position.copy(from);
     s.target.position.copy(to);
     world.add(s, s.target);
-    shadowLights.push({
-      kind: 'spot',
-      pos: from.clone(),
-      dir: to.clone().sub(from).normalize(),
-      cosOuter: Math.cos(0.62),
-      cosInner: Math.cos(0.62 * 0.3),
-      power: 4,
-    });
   }
   // Philadelphia wall: the back half of the left wall
   const leftX = -halfW + 0.01;
@@ -638,7 +626,6 @@ export function buildGallery(world, { renderer, site, wallArt = {} }) {
     bulb.position.set(x, H - drop - 0.06, z);
     scene.add(bulb);
     glows.push([x, H - drop - 0.08, z]);
-    shadowLights.push({ kind: 'point', pos: new THREE.Vector3(x, H - drop - 0.08, z), power: 6 });
   }
   pendant(0, -5.5);
   pendant(0, 0.5);
@@ -665,7 +652,6 @@ export function buildGallery(world, { renderer, site, wallArt = {} }) {
   sun.shadow.normalBias = 0.03;
   sun.shadow.radius = 5;
   world.add(sun, sun.target);
-  shadowLights.push({ kind: 'dir', dir: sun.position.clone().sub(sun.target.position).normalize(), power: 0.3 });
 
   // Every warm bulb in the room in a single instanced draw.
   if (bulbs.length) {
@@ -715,7 +701,6 @@ export function buildGallery(world, { renderer, site, wallArt = {} }) {
   return {
     bounds: { minX: -halfW, maxX: halfW, minZ: -halfD, maxZ: halfD },
     colliders,
-    shadowLights,
     update(dt, t) {
       for (const fn of updaters) fn(dt, t);
     },
