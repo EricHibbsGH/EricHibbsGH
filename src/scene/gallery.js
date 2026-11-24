@@ -32,6 +32,7 @@ export function buildGallery(world, { renderer, site, wallArt = {} }) {
   const halfD = ROOM.depth / 2;
   const H = ROOM.height;
   const colliders = [];
+  const seats = []; // where the figure can sit: { pos (front edge of the cushion), yaw (facing), top (seat height) }
   const updaters = [];
   const rand = mulberry32(2024);
 
@@ -111,7 +112,13 @@ export function buildGallery(world, { renderer, site, wallArt = {} }) {
     scene.add(g);
     return g;
   };
-  const collide = (x, z, hx, hz, kind) => colliders.push({ minX: x - hx, maxX: x + hx, minZ: z - hz, maxZ: z + hz, kind });
+  // `top`: a surface you can jump onto and stand on.
+  const collide = (x, z, hx, hz, kind, top) => colliders.push({ minX: x - hx, maxX: x + hx, minZ: z - hz, maxZ: z + hz, kind, top });
+  // `owner` is the piece of furniture; its bounding box is what the pointer hovers.
+  const seat = (g, lx, lz, top, owner = g) => {
+    const pos = new THREE.Vector3(lx, 0, lz).applyAxisAngle(new THREE.Vector3(0, 1, 0), g.rotation.y).add(g.position);
+    seats.push({ pos, yaw: g.rotation.y, top, owner });
+  };
 
   /* -------------------------------------------------------------- floor */
   const floorTex = createFloorTexture(renderer);
@@ -261,6 +268,7 @@ export function buildGallery(world, { renderer, site, wallArt = {} }) {
       box(g, cw, 0.17, D - 0.3, fabric, -inner / 2 + cw / 2 + i * (cw + 0.02) + 0.01, 0.46, 0.08, { round: 0.07 });
       const back = box(g, cw, 0.42, 0.17, fabric, -inner / 2 + cw / 2 + i * (cw + 0.02) + 0.01, 0.72, -D / 2 + 0.3, { round: 0.07 });
       back.rotation.x = -0.14;
+      seat(g, -inner / 2 + cw / 2 + i * (cw + 0.02) + 0.01, D / 2 + 0.03, 0.545);
     }
     box(g, length, 0.52, 0.22, fabric, 0, 0.64, -D / 2 + 0.11, { round: 0.08 });
     for (const sx of [-1, 1]) box(g, 0.2, 0.36, D, fabric, sx * (length / 2 - 0.1), 0.56, 0, { round: 0.09 });
@@ -388,7 +396,13 @@ export function buildGallery(world, { renderer, site, wallArt = {} }) {
     box(g, 2.3, 0.14, 0.6, M.charcoal, 0, 0.45, 0, { round: 0.05 });
     box(g, 2.2, 0.06, 0.52, M.oak, 0, 0.35, 0, { round: 0.015 });
     for (const sx of [-1.02, 1.02]) for (const sz of [-0.2, 0.2]) box(g, 0.06, 0.32, 0.06, M.oak, sx, 0.16, sz, { round: 0.01 });
-    collide(0, 0.5, 1.2, 0.34, 'bench');
+    collide(0, 0.5, 1.2, 0.34, 'bench', 0.52);
+    // Sit on either side, facing out.
+    for (const side of [0, Math.PI]) {
+      const s = placed(0, 0.5, side);
+      for (const x of [-0.55, 0.55]) seat(s, x, 0.33, 0.52, g);
+      scene.remove(s);
+    }
   }
 
   // Potted plants
@@ -696,11 +710,21 @@ export function buildGallery(world, { renderer, site, wallArt = {} }) {
   halo(bulbs.map((b) => b.p), 0.3, '#ffb468', 0.5);
   halo(glows, 1.3, '#ffc98a', 0.32);
 
+  // Hover bounds per piece of furniture, taken before the meshes are merged away.
+  scene.updateMatrixWorld(true);
+  const boxes = new Map();
+  for (const st of seats) {
+    if (!boxes.has(st.owner)) boxes.set(st.owner, new THREE.Box3().setFromObject(st.owner));
+    st.box = boxes.get(st.owner);
+    delete st.owner;
+  }
+
   mergeStatic(scene, world);
 
   return {
     bounds: { minX: -halfW, maxX: halfW, minZ: -halfD, maxZ: halfD },
     colliders,
+    seats,
     update(dt, t) {
       for (const fn of updaters) fn(dt, t);
     },

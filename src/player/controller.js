@@ -6,11 +6,14 @@ const RUN_SPEED = 7.6;
 const GRAVITY = -19;
 const JUMP_VELOCITY = 5.8;
 const RADIUS = 0.35;
+const STEP = 0.06; // how far below a surface's top you can still be and move onto it
+const SIT_TIME = 0.32;
 
 /**
  * Kinematic character controller: screen-relative movement + click-to-walk, AABB collision
  * against room bounds + obstacles (resolved per axis so you slide along walls),
- * a jump arc, and scripted "quick travel" glides.
+ * a jump arc, scripted "quick travel" glides, surfaces you can land on (colliders
+ * with a `top`), and sitting down on seats.
  */
 export class PlayerController {
   constructor(figure, { bounds, colliders }) {
@@ -27,6 +30,13 @@ export class PlayerController {
     this.maxSpeed = WALK_SPEED;
     this.speed = 0;
     this.faceTarget = null;
+    this.groundY = 0;
+    this.seat = null;
+    this.tween = null; // easing into or out of a seat
+  }
+
+  get isSeated() {
+    return !!this.seat;
   }
 
   get isTraveling() {
@@ -34,7 +44,11 @@ export class PlayerController {
   }
 
   jump() {
-    if (this.grounded && !this.travel) {
+    if (this.seat) {
+      this.standUp();
+      return false;
+    }
+    if (this.grounded && !this.travel && !this.tween) {
       this.vy = JUMP_VELOCITY;
       this.grounded = false;
       return true;
@@ -49,6 +63,7 @@ export class PlayerController {
   /** Glide to a point, then face `faceYaw`. Returns a promise resolved on arrival. */
   travelTo(point, faceYaw, { duration } = {}) {
     this.goal = null;
+    if (this.seat) this.standUp({ instant: true });
     const from = this.position.clone().setY(0);
     const to = point.clone().setY(0);
     const dist = from.distanceTo(to);
@@ -66,14 +81,72 @@ export class PlayerController {
     }
   }
 
-  #blocked(x, z) {
+  #blocked(x, z, y = this.position.y) {
     const r = this.radius;
     const b = this.bounds;
     if (x < b.minX + r || x > b.maxX - r || z < b.minZ + r || z > b.maxZ - r) return true;
     for (const c of this.colliders) {
+      if (c.top != null && y >= c.top - STEP) continue; // high enough to step onto it
       if (x > c.minX - r && x < c.maxX + r && z > c.minZ - r && z < c.maxZ + r) return true;
     }
     return false;
+  }
+
+  /** Height of whatever you would stand on at (x, z): a surface's top, or the floor. */
+  #groundAt(x, z) {
+    const r = this.radius;
+    let g = 0;
+    for (const c of this.colliders) {
+      if (c.top == null || c.top <= g) continue;
+      if (x > c.minX - r && x < c.maxX + r && z > c.minZ - r && z < c.maxZ + r) g = c.top;
+    }
+    return g;
+  }
+
+  /** Sit on a seat: { pos, yaw, rootY }. pos is where the figure sits, rootY its feet height. */
+  sit(seat) {
+    if (this.seat || this.travel) return;
+    this.goal = null;
+    this.velocity.set(0, 0, 0);
+    this.vy = 0;
+    this.grounded = true;
+    this.seat = seat;
+    this.faceTarget = null;
+    this.tween = {
+      from: this.position.clone(),
+      to: new THREE.Vector3(seat.pos.x, seat.rootY, seat.pos.z),
+      t: 0,
+      dur: SIT_TIME,
+    };
+  }
+
+  /** Get up and step out in front of the seat, to the first clear spot. */
+  standUp({ instant = false } = {}) {
+    const seat = this.seat;
+    if (!seat) return;
+    this.seat = null;
+    const fx = Math.sin(seat.yaw);
+    const fz = Math.cos(seat.yaw);
+    let exit = null;
+    search: for (const d of [0.55, 0.8, 1.1, 1.5]) {
+      for (const a of [0, 0.6, -0.6, 1.2, -1.2, 1.7, -1.7]) {
+        const x = seat.pos.x + (fx * Math.cos(a) - fz * Math.sin(a)) * d;
+        const z = seat.pos.z + (fz * Math.cos(a) + fx * Math.sin(a)) * d;
+        if (!this.#blocked(x, z, 0)) {
+          exit = new THREE.Vector3(x, this.#groundAt(x, z), z);
+          break search;
+        }
+      }
+    }
+    exit ??= new THREE.Vector3(seat.pos.x + fx * 0.6, 0, seat.pos.z + fz * 0.6);
+    if (instant) {
+      this.tween = null;
+      this.position.copy(exit);
+    } else {
+      this.tween = { from: this.position.clone(), to: exit, t: 0, dur: SIT_TIME };
+    }
+    this.grounded = true;
+    this.vy = 0;
   }
 
   #clampToBounds() {
@@ -86,6 +159,7 @@ export class PlayerController {
   /** Click-to-walk: head for a floor point using normal movement + collisions. */
   walkTo(point) {
     this.cancelTravel();
+    if (this.seat) this.standUp({ instant: true });
     this.goal = new THREE.Vector3(point.x, 0, point.z);
     this.goalStuck = 0;
   }
@@ -104,7 +178,19 @@ export class PlayerController {
     const pos = this.position;
     this.maxSpeed = WALK_SPEED;
 
-    if (this.travel) {
+    if (this.tween) {
+      // Easing into or out of a seat.
+      const tw = this.tween;
+      tw.t = Math.min(1, tw.t + dt / tw.dur);
+      pos.lerpVectors(tw.from, tw.to, easeInOutCubic(tw.t));
+      if (tw.t >= 1) this.tween = null;
+      this.speed = 0;
+      this.velocity.set(0, 0, 0);
+      if (this.seat) this.yaw = dampAngle(this.yaw, this.seat.yaw, 12, dt);
+    } else if (this.seat) {
+      this.speed = 0;
+      this.yaw = dampAngle(this.yaw, this.seat.yaw, 12, dt);
+    } else if (this.travel) {
       const tr = this.travel;
       tr.t = Math.min(1, tr.t + dt / tr.dur);
       const e = easeInOutCubic(tr.t);
@@ -185,16 +271,24 @@ export class PlayerController {
       }
     }
 
-    // Vertical: simple ballistic arc.
+    // Vertical: simple ballistic arc onto the floor or any surface below.
     let landingVy = 0;
-    if (!this.grounded) {
-      this.vy += GRAVITY * dt;
-      pos.y += this.vy * dt;
-      if (pos.y <= 0) {
-        pos.y = 0;
-        landingVy = this.vy;
+    if (!this.seat && !this.tween) {
+      const ground = this.#groundAt(pos.x, pos.z);
+      this.groundY = ground;
+      if (this.grounded && pos.y > ground + 0.001) {
+        this.grounded = false; // walked off an edge
         this.vy = 0;
-        this.grounded = true;
+      }
+      if (!this.grounded) {
+        this.vy += GRAVITY * dt;
+        pos.y += this.vy * dt;
+        if (pos.y <= ground && this.vy <= 0) {
+          pos.y = ground;
+          landingVy = this.vy;
+          this.vy = 0;
+          this.grounded = true;
+        }
       }
     }
 
@@ -203,6 +297,8 @@ export class PlayerController {
       maxSpeed: WALK_SPEED,
       grounded: this.grounded,
       vy: this.grounded ? landingVy : this.vy,
+      groundY: this.seat || this.tween ? null : this.groundY,
+      seated: !!this.seat,
     });
   }
 

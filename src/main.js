@@ -6,7 +6,7 @@ import { smoothstep, prefersReducedMotion } from './core/math.js';
 import { waitForFonts, createGuideArrowTexture } from './scene/textures.js';
 import { buildGallery, ROOM } from './scene/gallery.js';
 import { buildFrames } from './scene/frames.js';
-import { StickFigure } from './player/stickFigure.js';
+import { StickFigure, SIT_HIP_HEIGHT } from './player/stickFigure.js';
 import { PlayerController } from './player/controller.js';
 import { FollowCamera } from './camera/followCamera.js';
 import { Hud } from './ui/hud.js';
@@ -20,6 +20,9 @@ const INTERACT_DISTANCE = 3.0; // metres — shows the "[E] VIEW …" prompt
 const FOCUS_DISTANCE = 4.6; // metres — camera starts framing the artwork
 const VIEW_DISTANCE = 3.4; // metres — stop this close to a painting and the camera turns to face it
 const SPAWN = new THREE.Vector3(0, 0, 8);
+const SEAT_DISTANCE = 1.4; // metres — shows the "Sit down" prompt
+const SIT_PROMPT = { prompt: 'Sit down' };
+const STAND_PROMPT = { prompt: 'Stand up' };
 
 const canvas = document.getElementById('scene');
 const input = new Input();
@@ -27,6 +30,8 @@ const audio = new GalleryAudio();
 const state = {
   started: false,
   activeId: null,
+  seat: null, // nearest seat in reach, when no painting is
+  pendingSeat: null, // clicked seat the figure is walking over to
   modalCooldown: 0,
   travelFocus: null,
   camYawGoal: 0, // the camera holds this angle; it changes on arrival at a painting or a right-drag
@@ -114,7 +119,15 @@ function travelTo(id) {
 }
 
 function interact(id = state.activeId) {
-  if (!id || modals.isOpen || state.modalCooldown > 0) return;
+  if (modals.isOpen || state.modalCooldown > 0) return;
+  if (world?.controller.isSeated) {
+    world.controller.standUp();
+    return;
+  }
+  if (!id) {
+    if (state.seat) sitOn(state.seat);
+    return;
+  }
   audio.unlock();
   if (world) {
     const frame = world.frames.find((f) => f.id === id);
@@ -125,11 +138,22 @@ function interact(id = state.activeId) {
   modals.open(id);
 }
 
+function sitOn(seat) {
+  if (!world) return;
+  audio.unlock();
+  state.pendingSeat = null;
+  world.controller.sit(seat);
+  // Swing round to look at the figure from the front of the seat.
+  state.camYawGoal = seat.yaw;
+  state.framed = true;
+}
+
 input.on('any', () => audio.unlock());
 input.on('interact', () => interact());
 input.on('jump', () => world?.controller.jump());
 input.on('escape', () => {
   if (modals.isOpen) modals.close();
+  else world?.controller.standUp();
 });
 
 /* ---------------------------------------------------------------- intro */
@@ -203,6 +227,8 @@ async function createWorld() {
   figure.onLand = (s) => audio.land(s);
 
   const controller = new PlayerController(figure, { bounds: gallery.bounds, colliders });
+  // Seated, the hips rest on the cushion (sinking in a little).
+  const seats = gallery.seats.map((s) => ({ ...s, rootY: s.top - SIT_HIP_HEIGHT - 0.03 }));
 
   // Floor compass under the figure, pointing to the next exhibit.
   const compass = new THREE.Mesh(
@@ -234,14 +260,43 @@ async function createWorld() {
     const hit = raycaster.intersectObjects(pickables, false)[0];
     return hit && hit.distance < 30 ? hit.object.userData.exhibitId : null;
   };
+  // Seats under the pointer (call right after pick(), which aims the ray).
+  const seatHit = new THREE.Vector3();
+  const pickSeat = () => {
+    let best = null;
+    let bestD = 30;
+    for (const s of seats) {
+      const hit = raycaster.ray.intersectBox(s.box, seatHit);
+      if (!hit) continue;
+      const d = hit.distanceTo(raycaster.ray.origin);
+      // Several seats share one bench or sofa: take the one nearest the hit point.
+      const score = d + Math.hypot(hit.x - s.pos.x, hit.z - s.pos.z) * 0.01;
+      if (score < bestD) {
+        bestD = score;
+        best = s;
+      }
+    }
+    return best;
+  };
+  const seatTip = document.getElementById('hud-seat-tip');
   let hoverQueued = null;
   canvas.addEventListener('pointermove', (e) => {
     if (e.pointerType !== 'mouse' || hoverQueued) return;
     hoverQueued = requestAnimationFrame(() => {
       hoverQueued = null;
-      canvas.classList.toggle('is-pickable', !!pick(e) && !modals.isOpen);
+      const painting = pick(e);
+      const seat = !painting && state.started && !modals.isOpen && !controller.isSeated ? pickSeat() : null;
+      canvas.classList.toggle('is-pickable', (!!painting || !!seat) && !modals.isOpen);
+      seatTip.classList.toggle('is-visible', !!seat && !cam.isLooking);
+      if (seat) {
+        // Keep the hint on screen: flip to the other side of the cursor near the edges.
+        const x = e.clientX + 18 + seatTip.offsetWidth > window.innerWidth ? e.clientX - 18 - seatTip.offsetWidth : e.clientX + 18;
+        const y = e.clientY + 18 + seatTip.offsetHeight > window.innerHeight ? e.clientY - 18 - seatTip.offsetHeight : e.clientY + 18;
+        seatTip.style.transform = `translate(${x}px, ${y}px)`;
+      }
     });
   });
+  canvas.addEventListener('pointerleave', () => seatTip.classList.remove('is-visible'));
   let downAt = null;
   canvas.addEventListener('pointerdown', (e) => {
     downAt = { x: e.clientX, y: e.clientY };
@@ -255,7 +310,22 @@ async function createWorld() {
       interact(id);
       return;
     }
+    // Click a seat: walk over and sit down.
+    const seat = controller.isSeated ? null : pickSeat();
+    if (seat) {
+      seatTip.classList.remove('is-visible');
+      const d = Math.hypot(controller.position.x - seat.pos.x, controller.position.z - seat.pos.z);
+      if (d < SEAT_DISTANCE) {
+        sitOn(seat);
+      } else {
+        audio.unlock();
+        controller.walkTo(seat.pos);
+        state.pendingSeat = seat;
+      }
+      return;
+    }
     // Click-to-walk: head for the clicked spot on the floor.
+    state.pendingSeat = null;
     const hit = raycaster.ray.intersectPlane(floorPlane, floorHit);
     const b = gallery.bounds;
     if (!hit || hit.x < b.minX || hit.x > b.maxX || hit.z < b.minZ || hit.z > b.maxZ) return;
@@ -272,7 +342,7 @@ async function createWorld() {
   const floorHit = new THREE.Vector3();
   const marker = new THREE.Mesh(
     new THREE.RingGeometry(0.22, 0.3, 40),
-    new THREE.MeshBasicMaterial({ color: '#e07a4f', transparent: true, depthWrite: false, toneMapped: false }),
+    new THREE.MeshBasicMaterial({ color: '#b23a4e', transparent: true, depthWrite: false, toneMapped: false }),
   );
   marker.rotation.x = -Math.PI / 2;
   marker.visible = false;
@@ -297,7 +367,7 @@ async function createWorld() {
     minimap.resize();
   });
 
-  return { renderer, scene, camera, gallery, frames, figure, controller, cam, minimap, compass, compassPivot, marker };
+  return { renderer, scene, camera, gallery, frames, figure, controller, cam, minimap, compass, compassPivot, marker, seats };
 }
 
 /* ----------------------------------------------------------------- loop */
@@ -319,6 +389,15 @@ function startLoop(w) {
 
     const axis = state.started ? input.axis : zeroAxis;
     const moving = Math.hypot(axis.x, axis.y) > 0.01;
+    if (moving && w.controller.isSeated) w.controller.standUp(); // walking off gets you up
+    if (moving) state.pendingSeat = null;
+    // Walking to a clicked seat: sit once close enough, or give up if the walk ended short.
+    if (state.pendingSeat) {
+      const s = state.pendingSeat;
+      const d = Math.hypot(pos.x - s.pos.x, pos.z - s.pos.z);
+      if (d < 0.6 || (!w.controller.isWalkingToGoal && d < SEAT_DISTANCE)) sitOn(s);
+      else if (!w.controller.isWalkingToGoal) state.pendingSeat = null;
+    }
     if (moving && w.controller.isTraveling) {
       w.controller.cancelTravel(); // the player takes over mid-glide
       state.travelFocus = null;
@@ -357,10 +436,21 @@ function startLoop(w) {
     const active = state.started && !openId && nearestDist < INTERACT_DISTANCE ? nearest : null;
     for (const f of w.frames) f.update(dt, f === active || f.id === openId, t);
     const activeId = active?.id ?? null;
-    if (activeId !== state.activeId) {
-      state.activeId = activeId;
-      hud.setPrompt(active ? active.exhibit : null);
+    state.activeId = activeId;
+    // No painting in reach: offer the nearest seat, or getting up from one.
+    state.seat = null;
+    if (state.started && !openId && !active && !w.controller.isSeated) {
+      let best = SEAT_DISTANCE;
+      for (const s of w.seats) {
+        const d = Math.hypot(pos.x - s.pos.x, pos.z - s.pos.z);
+        if (d < best) {
+          best = d;
+          state.seat = s;
+        }
+      }
     }
+    const seatedPrompt = state.started && !openId && w.controller.isSeated ? STAND_PROMPT : null;
+    hud.setPrompt(active ? active.exhibit : seatedPrompt ?? (state.seat ? SIT_PROMPT : null));
 
     // Camera angle: hold steady while walking; turn to face a painting once, on arrival
     // (stopping in front of it or quick-travelling to it). A right-drag always wins

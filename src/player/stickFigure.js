@@ -24,6 +24,13 @@ const LEG_LEN = 160;
 const INK_W = 9 * K;
 const HALO_W = 20 * K;
 
+// Seated pose: thighs come toward the viewer (short), shins hang, hands rest.
+const SIT_LEG = 0.42;
+const SIT_LEN = 0.55;
+const SIT_ARM = 0.3;
+/** Height of the hips above the feet when seated, in metres. */
+export const SIT_HIP_HEIGHT = Math.cos(SIT_LEG) * LEG_LEN * SIT_LEN * K;
+
 const X = (px) => (px - CX) * K;
 const Y = (py) => (FOOT_Y - py) * K;
 
@@ -82,7 +89,7 @@ export class StickFigure {
     this.#apply();
   }
 
-  update(dt, { speed, maxSpeed, grounded, vy }) {
+  update(dt, { speed, maxSpeed, grounded, vy, groundY = 0, seated = false }) {
     this.time += dt;
     const s = clamp(speed / maxSpeed, 0, 1.6);
     const moving = s > 0.06;
@@ -97,7 +104,11 @@ export class StickFigure {
     this._wasGrounded = grounded;
 
     const t = {};
-    if (!grounded) {
+    if (seated) {
+      t.armL = t.armR = SIT_ARM;
+      t.legL = t.legR = SIT_LEG;
+      t.lenL = t.lenR = SIT_LEN;
+    } else if (!grounded) {
       const rising = clamp(vy / 6, -1, 1);
       t.armL = t.armR = 2.25 + rising * 0.12; // arms up into a "Y"
       t.legL = t.legR = 0.38;
@@ -121,12 +132,16 @@ export class StickFigure {
     // Fast settle so the figure plants its feet the moment you let go.
     for (const k of Object.keys(this.pose)) this.pose[k] = damp(this.pose[k], t[k], grounded ? 22 : 14, dt);
 
-    // Contact shadow tightens and fades as the figure leaves the floor.
-    const h = this.root.position.y;
-    this.contact.position.y = -h + 0.012;
-    const sc = 1 - Math.min(0.45, h * 0.35);
-    this.contact.scale.set(sc, sc, sc);
-    this.contact.material.opacity = 1 - Math.min(0.7, h * 0.6);
+    // Contact shadow sits on whatever is underfoot, tightening and fading in a jump.
+    // Seated (groundY null), the furniture's own shadow does the job.
+    this.contact.visible = groundY != null;
+    if (groundY != null) {
+      const h = Math.max(0, this.root.position.y - groundY);
+      this.contact.position.y = -h + 0.012;
+      const sc = 1 - Math.min(0.45, h * 0.35);
+      this.contact.scale.set(sc, sc, sc);
+      this.contact.material.opacity = 1 - Math.min(0.7, h * 0.6);
+    }
 
     this.#apply();
   }
