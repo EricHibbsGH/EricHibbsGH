@@ -268,7 +268,7 @@ export function buildGallery(world, { renderer, site, wallArt = {} }) {
       box(g, cw, 0.17, D - 0.3, fabric, -inner / 2 + cw / 2 + i * (cw + 0.02) + 0.01, 0.46, 0.08, { round: 0.07 });
       const back = box(g, cw, 0.42, 0.17, fabric, -inner / 2 + cw / 2 + i * (cw + 0.02) + 0.01, 0.72, -D / 2 + 0.3, { round: 0.07 });
       back.rotation.x = -0.14;
-      seat(g, -inner / 2 + cw / 2 + i * (cw + 0.02) + 0.01, D / 2 + 0.03, 0.545);
+      seat(g, -inner / 2 + cw / 2 + i * (cw + 0.02) + 0.01, D / 2 + 0.09, 0.545);
     }
     box(g, length, 0.52, 0.22, fabric, 0, 0.64, -D / 2 + 0.11, { round: 0.08 });
     for (const sx of [-1, 1]) box(g, 0.2, 0.36, D, fabric, sx * (length / 2 - 0.1), 0.56, 0, { round: 0.09 });
@@ -400,7 +400,7 @@ export function buildGallery(world, { renderer, site, wallArt = {} }) {
     // Sit on either side, facing out.
     for (const side of [0, Math.PI]) {
       const s = placed(0, 0.5, side);
-      for (const x of [-0.55, 0.55]) seat(s, x, 0.33, 0.52, g);
+      for (const x of [-0.55, 0.55]) seat(s, x, 0.37, 0.52, g);
       scene.remove(s);
     }
   }

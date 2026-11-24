@@ -3,10 +3,15 @@ import { clamp, damp } from '../core/math.js';
 import { createBlobShadowTexture } from '../scene/textures.js';
 
 /*
- * The hand-drawn stick figure (circle head, line body, V arms, inverted-V legs),
+ * The hand-drawn stick figure (circle head, line body, V arms, legs with knees),
  * built from flat vector meshes on a camera-facing billboard: a white halo stroke
  * behind a black ink stroke. Joints are moved every frame — no texture uploads —
  * so it stays razor sharp at any distance and animates at full frame rate.
+ *
+ * Seated, the pose is solved in metres around the seat: hips on the cushion,
+ * thighs along it, knees at the front edge and shins down to the floor. Because the
+ * drawing always faces the camera, the pose turns with the view: a side profile
+ * when the seat is seen side-on, foreshortened thighs and parted knees from the front.
  *
  * A soft contact shadow sits under the feet for grounding.
  *
@@ -24,12 +29,24 @@ const LEG_LEN = 160;
 const INK_W = 9 * K;
 const HALO_W = 20 * K;
 
-// Seated pose: thighs come toward the viewer (short), shins hang, hands rest.
-const SIT_LEG = 0.42;
-const SIT_LEN = 0.55;
-const SIT_ARM = 0.3;
-/** Height of the hips above the feet when seated, in metres. */
-export const SIT_HIP_HEIGHT = Math.cos(SIT_LEG) * LEG_LEN * SIT_LEN * K;
+// Seated pose, in metres.
+const THIGH = 0.26; // hip to knee along the cushion
+const KNEE_SPREAD = 0.13; // half the gap between the knees, seen from the front
+const MIN_TURN = 0.55;
+const TORSO = (HIP_Y - NECK_Y) * K;
+const ARM = ARM_LEN * K;
+
+const SEGMENTS = [
+  ['neck', 'hip'],
+  ['neck', 'handL'],
+  ['neck', 'handR'],
+  ['hip', 'kneeL'],
+  ['kneeL', 'footL'],
+  ['hip', 'kneeR'],
+  ['kneeR', 'footR'],
+];
+const CAPS = ['neck', 'hip', 'handL', 'handR', 'kneeL', 'kneeR', 'footL', 'footR'];
+const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
 
 const X = (px) => (px - CX) * K;
 const Y = (py) => (FOOT_Y - py) * K;
@@ -59,8 +76,8 @@ export class StickFigure {
         width,
         z,
         head: mk(ringGeo),
-        segs: Array.from({ length: 5 }, () => mk(segGeo)), // body, armL, armR, legL, legR
-        caps: Array.from({ length: 6 }, () => mk(capGeo)), // neck, hip, handL, handR, footL, footR
+        segs: Array.from({ length: SEGMENTS.length }, () => mk(segGeo)),
+        caps: Array.from({ length: CAPS.length }, () => mk(capGeo)),
       };
     };
 
@@ -86,10 +103,16 @@ export class StickFigure {
 
     // Angles measured from straight down, positive = away from the body.
     this.pose = { armL: 0.66, armR: 0.66, legL: 0.77, legR: 0.77, lenL: 1, lenR: 1 };
+    this.seat = null; // { yaw, top } while sitting
+    this.sitBlend = 0; // 0 standing ... 1 seated
+    this.view = 1; // sin of the seat's facing relative to the screen: +-1 side-on, 0 head-on
     this.#apply();
   }
 
-  update(dt, { speed, maxSpeed, grounded, vy, groundY = 0, seated = false }) {
+  update(dt, { speed, maxSpeed, grounded, vy, groundY = 0, seat = null }) {
+    if (seat) this.seat = seat;
+    this.sitBlend = damp(this.sitBlend, seat ? 1 : 0, 12, dt);
+    if (!seat && this.sitBlend < 0.002) this.seat = null;
     this.time += dt;
     const s = clamp(speed / maxSpeed, 0, 1.6);
     const moving = s > 0.06;
@@ -104,11 +127,7 @@ export class StickFigure {
     this._wasGrounded = grounded;
 
     const t = {};
-    if (seated) {
-      t.armL = t.armR = SIT_ARM;
-      t.legL = t.legR = SIT_LEG;
-      t.lenL = t.lenR = SIT_LEN;
-    } else if (!grounded) {
+    if (!grounded) {
       const rising = clamp(vy / 6, -1, 1);
       t.armL = t.armR = 2.25 + rising * 0.12; // arms up into a "Y"
       t.legL = t.legR = 0.38;
@@ -146,13 +165,19 @@ export class StickFigure {
     this.#apply();
   }
 
-  /** Turn the drawing toward the camera. */
+  /** Turn the drawing toward the camera; a seated pose re-solves for the new view. */
   faceCamera(camera) {
     const p = this.root.position;
-    this.billboard.rotation.y = Math.atan2(camera.position.x - p.x, camera.position.z - p.z);
+    const turn = Math.atan2(camera.position.x - p.x, camera.position.z - p.z);
+    this.billboard.rotation.y = turn;
+    if (this.seat) {
+      this.view = Math.sin(this.seat.yaw - turn);
+      this.#apply();
+    }
   }
 
-  #apply() {
+  /** Standing, walking and jumping, from the joint angles (metres, feet at y = 0). */
+  #standPoints() {
     const P = this.pose;
     const footLx = CX - Math.sin(P.legL) * LEG_LEN * P.lenL;
     const footLy = HIP_Y + Math.cos(P.legL) * LEG_LEN * P.lenL;
@@ -161,27 +186,76 @@ export class StickFigure {
     // The planted foot touches the floor: shift the drawing so the lowest foot sits on FOOT_Y.
     const dy = FOOT_Y - Math.max(footLy, footRy);
 
-    const pts = {
+    const hip = [X(CX), Y(HIP_Y + dy)];
+    const footL = [X(footLx), Y(footLy + dy)];
+    const footR = [X(footRx), Y(footRy + dy)];
+    return {
       head: [X(CX), Y(NECK_Y - HEAD_R + dy)],
       neck: [X(CX), Y(NECK_Y + dy)],
-      hip: [X(CX), Y(HIP_Y + dy)],
+      hip,
       handL: [X(CX - Math.sin(P.armL) * ARM_LEN), Y(NECK_Y + Math.cos(P.armL) * ARM_LEN + dy)],
       handR: [X(CX + Math.sin(P.armR) * ARM_LEN), Y(NECK_Y + Math.cos(P.armR) * ARM_LEN + dy)],
-      footL: [X(footLx), Y(footLy + dy)],
-      footR: [X(footRx), Y(footRy + dy)],
+      kneeL: mid(hip, footL), // straight legs while standing
+      kneeR: mid(hip, footR),
+      footL,
+      footR,
     };
-    const segPairs = [
-      ['neck', 'hip'],
-      ['neck', 'handL'],
-      ['neck', 'handR'],
-      ['hip', 'footL'],
-      ['hip', 'footR'],
-    ];
-    const capKeys = ['neck', 'hip', 'handL', 'handR', 'footL', 'footR'];
+  }
+
+  /**
+   * Seated, in metres. The root stands at the front edge of the seat, on the floor:
+   * knees just above it, feet on the floor below, hips back on the cushion.
+   */
+  #sitPoints() {
+    const top = this.seat.top;
+    // Which way the thighs point on screen. Head-on, a seated stick figure reads as
+    // standing, so the drawing always keeps at least a three-quarter turn.
+    const v = clamp(this.view, -1, 1);
+    const side = (v < 0 ? -1 : 1) * Math.max(Math.abs(v), MIN_TURN);
+    const front = Math.sqrt(1 - side * side); // larger when the seat faces the camera
+    const hip = [-side * THIGH, top + 0.02];
+    const kneeY = top - 0.02 - 0.05 * front;
+    const kneeL = [-KNEE_SPREAD * front, kneeY];
+    const kneeR = [KNEE_SPREAD * front, kneeY];
+    const footL = [kneeL[0] - 0.03 * front + side * 0.03, 0];
+    const footR = [kneeR[0] + 0.03 * front + side * 0.03, 0];
+    const neck = [hip[0] - side * 0.04, hip[1] + TORSO]; // sat up, leaning back a touch
+    // Hands rest toward the knees.
+    const reach = (knee, out) => {
+      const dx = knee[0] - neck[0] + out * front;
+      const dy = knee[1] + 0.08 - neck[1];
+      const d = Math.hypot(dx, dy) || 1;
+      const r = Math.min(ARM, d);
+      return [neck[0] + (dx / d) * r, neck[1] + (dy / d) * r];
+    };
+    return {
+      head: [neck[0], neck[1] + HEAD_R * K],
+      neck,
+      hip,
+      handL: reach(kneeL, -0.1),
+      handR: reach(kneeR, 0.1),
+      kneeL,
+      kneeR,
+      footL,
+      footR,
+    };
+  }
+
+  #apply() {
+    const stand = this.#standPoints();
+    let pts = stand;
+    if (this.seat && this.sitBlend > 0.001) {
+      const sit = this.#sitPoints();
+      const b = this.sitBlend * this.sitBlend * (3 - 2 * this.sitBlend);
+      pts = {};
+      for (const k of Object.keys(stand)) {
+        pts[k] = [stand[k][0] + (sit[k][0] - stand[k][0]) * b, stand[k][1] + (sit[k][1] - stand[k][1]) * b];
+      }
+    }
 
     for (const layer of this.layers) {
       layer.head.position.set(pts.head[0], pts.head[1], layer.z);
-      segPairs.forEach(([a, b], i) => {
+      SEGMENTS.forEach(([a, b], i) => {
         const m = layer.segs[i];
         const [ax, ay] = pts[a];
         const [bx, by] = pts[b];
@@ -191,7 +265,7 @@ export class StickFigure {
         m.rotation.z = Math.atan2(-ddx, ddy);
         m.scale.set(layer.width, Math.hypot(ddx, ddy), 1);
       });
-      capKeys.forEach((k, i) => {
+      CAPS.forEach((k, i) => {
         const m = layer.caps[i];
         m.position.set(pts[k][0], pts[k][1], layer.z);
         m.scale.set(layer.width, layer.width, 1);

@@ -6,7 +6,7 @@ import { smoothstep, prefersReducedMotion } from './core/math.js';
 import { waitForFonts, createGuideArrowTexture } from './scene/textures.js';
 import { buildGallery, ROOM } from './scene/gallery.js';
 import { buildFrames } from './scene/frames.js';
-import { StickFigure, SIT_HIP_HEIGHT } from './player/stickFigure.js';
+import { StickFigure } from './player/stickFigure.js';
 import { PlayerController } from './player/controller.js';
 import { FollowCamera } from './camera/followCamera.js';
 import { Hud } from './ui/hud.js';
@@ -179,15 +179,23 @@ const seatTag = {
       this.el.classList.toggle('has-key', withKey);
       this.el.setAttribute('aria-label', withKey ? `${label} (press E)` : label);
     }
-    // Beside the cushion, or beside the head when sitting.
+    // Beside the cushion; when sitting, just above the head (over the hips, which sit
+    // back from the front edge of the seat).
     const seated = label === 'Stand up';
-    this.anchor.set(seat.pos.x, seat.top + (seated ? 0.85 : 0.3), seat.pos.z).project(camera);
+    if (seated) {
+      const back = 0.14;
+      this.anchor.set(seat.pos.x - Math.sin(seat.yaw) * back, seat.top + 1.42, seat.pos.z - Math.cos(seat.yaw) * back);
+    } else {
+      this.anchor.set(seat.pos.x, seat.top + 0.3, seat.pos.z);
+    }
+    this.anchor.project(camera);
     const onScreen = this.anchor.z < 1 && Math.abs(this.anchor.x) < 1.1 && Math.abs(this.anchor.y) < 1.1;
     this.el.hidden = !onScreen;
     if (!onScreen) return;
-    const x = (this.anchor.x * 0.5 + 0.5) * window.innerWidth + (seated ? 46 : 26);
+    const x = (this.anchor.x * 0.5 + 0.5) * window.innerWidth + (seated ? 0 : 26);
     const y = (-this.anchor.y * 0.5 + 0.5) * window.innerHeight;
-    this.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translateY(-50%)`;
+    const shift = seated ? 'translate(-50%, -100%)' : 'translateY(-50%)';
+    this.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) ${shift}`;
   },
   hide() {
     if (this.el.hidden) return;
@@ -262,8 +270,8 @@ async function createWorld() {
   figure.onLand = (s) => audio.land(s);
 
   const controller = new PlayerController(figure, { bounds: gallery.bounds, colliders });
-  // Seated, the hips rest on the cushion (sinking in a little).
-  const seats = gallery.seats.map((s) => ({ ...s, rootY: s.top - SIT_HIP_HEIGHT - 0.03 }));
+  // Seated, the feet stay on the floor; the pose lifts the hips onto the cushion.
+  const seats = gallery.seats.map((s) => ({ ...s, rootY: 0 }));
 
   // Floor compass under the figure, pointing to the next exhibit.
   const compass = new THREE.Mesh(

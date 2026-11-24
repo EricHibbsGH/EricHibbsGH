@@ -298,7 +298,7 @@ export class PlayerController {
       grounded: this.grounded,
       vy: this.grounded ? landingVy : this.vy,
       groundY: this.seat || this.tween ? null : this.groundY,
-      seated: !!this.seat,
+      seat: this.seat,
     });
   }
 
