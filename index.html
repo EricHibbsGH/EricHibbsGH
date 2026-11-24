@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Portfolio Gallery</title>
+    <meta name="description" content="An interactive 3D art gallery portfolio — walk the room to explore the resume, GitHub projects, research paper and system design work." />
+    <meta name="theme-color" content="#121212" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+  </head>
+  <body>
+    <canvas id="scene" tabindex="0" aria-label="3D gallery. Use W A S D or the arrow keys to walk, or click the floor. E opens the nearest exhibit."></canvas>
+
+    <!-- ===================== HUD ===================== -->
+    <div class="hud" id="hud">
+      <header class="topbar">
+        <div class="topbar-brand">
+          <span class="hud-brand" id="hud-brand">Eric Hibbs</span>
+          <span class="topbar-role" id="hud-role"></span>
+        </div>
+        <span class="topbar-divider" aria-hidden="true"></span>
+        <nav class="qt" id="qt-nav" aria-label="Walk to an exhibit"></nav>
+        <div class="hud-actions">
+          <button type="button" class="hud-chip" id="btn-mute" aria-pressed="false">
+            <svg class="icon icon-sound" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" /><path class="wave" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" /><path class="mute-x" d="M16 9l6 6M22 9l-6 6" /></svg>
+            <span class="label">Mute Audio</span>
+          </button>
+          <button type="button" class="hud-chip" id="btn-controls" aria-expanded="true" aria-controls="hud-legend">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2.5" /><path d="M6.5 10h1M10 10h1M13.5 10h1M17 10h1M8 14h8" /></svg>
+            <span class="label">Controls</span>
+          </button>
+        </div>
+      </header>
+
+      <aside class="hud-panel hud-legend" id="hud-legend" aria-label="Controls">
+        <p class="hud-title">Controls</p>
+        <ul>
+          <li><span class="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span class="or">/</span><kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd></span><span>Walk</span></li>
+          <li><span class="keys"><kbd class="wide">Click</kbd></span><span>Walk to a spot</span></li>
+          <li><span class="keys"><kbd class="wide">Shift</kbd></span><span>Run</span></li>
+          <li><span class="keys"><kbd class="wide">Space</kbd></span><span>Jump</span></li>
+          <li><span class="keys"><kbd>E</kbd></span><span>Look closer at a painting</span></li>
+          <li><span class="keys"><kbd class="wide">Right-drag</kbd></span><span>Look around</span></li>
+          <li><span class="keys"><kbd class="wide">Scroll</kbd></span><span>Zoom the camera</span></li>
+          <li><span class="keys"><kbd class="wide">Esc</kbd></span><span>Close exhibit</span></li>
+        </ul>
+      </aside>
+
+      <aside class="hud-panel hud-minimap" aria-label="Mini-map">
+        <div class="hud-minimap-head">
+          <p class="hud-title">Mini-Map</p>
+          <span>Floor plan</span>
+        </div>
+        <canvas id="minimap" role="img" aria-label="Top-down floor plan showing your position and the four exhibits. Click an exhibit marker to travel there."></canvas>
+      </aside>
+
+      <div class="hud-guide" id="hud-guide" aria-live="polite">
+        <span class="guide-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5l7 8.5h-4.2v8.5H9.2V12H5z" /></svg></span>
+        <span class="guide-text"><strong id="guide-title">Next</strong><span id="guide-sub"></span></span>
+      </div>
+
+      <div class="hud-toast hud-panel" id="hud-look-toast" role="status" aria-live="polite">
+        <svg class="toast-mouse" viewBox="0 0 24 32" aria-hidden="true">
+          <rect x="2" y="2" width="20" height="28" rx="10" />
+          <path d="M12 2v11M2.5 13h19" />
+          <path class="toast-mouse-btn" d="M12.6 2.4a9.6 9.6 0 0 1 8.9 9.9V12.4H12.6z" />
+        </svg>
+        <span class="toast-text">
+          <strong>Drag to move camera</strong>
+          <span class="toast-sub">Hold right-click and drag to look around</span>
+        </span>
+      </div>
+
+      <div class="hud-coach hud-panel" id="hud-coach" role="status">
+        <span class="coach-step"></span>
+        <span class="coach-keys"></span>
+        <span class="coach-text"></span>
+        <button type="button" class="coach-skip">Skip</button>
+      </div>
+
+      <button type="button" class="hud-prompt" id="hud-prompt" tabindex="-1">
+        <kbd>E</kbd>
+        <span class="hud-prompt-tap" aria-hidden="true">Tap</span>
+        <span id="hud-prompt-text">View</span>
+      </button>
+
+      <div class="touch-controls" id="touch-controls" hidden>
+        <div class="joystick" aria-hidden="true"><div class="joystick-knob"></div></div>
+        <button type="button" class="touch-jump" aria-label="Jump">Jump</button>
+      </div>
+    </div>
+
+    <!-- ===================== MODALS ===================== -->
+    <div id="modal-root"></div>
+
+    <!-- ===================== INTRO ===================== -->
+    <div class="intro" id="intro">
+      <div class="intro-card">
+        <p class="eyebrow">Come on in</p>
+        <h1 class="intro-title" id="intro-title">Portfolio Gallery</h1>
+        <p class="intro-owner" id="intro-owner"></p>
+        <p class="intro-copy" id="intro-copy"></p>
+        <button type="button" class="btn btn--primary btn--large" id="enter-btn" disabled>
+          <span class="label">Loading gallery…</span>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </button>
+        <p class="intro-hint">
+          <span class="hint-keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or click the floor to walk · right-drag to look · <kbd>E</kbd> open a painting</span>
+          <span class="hint-touch">Joystick or tap the floor to walk · drag to look · tap a painting to open it</span>
+        </p>
+      </div>
+    </div>
+
+    <noscript>
+      <div class="noscript">This portfolio is an interactive 3D gallery and needs JavaScript enabled.</div>
+    </noscript>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
