@@ -109,7 +109,7 @@ export const resume = {
     { label: 'GitHub', value: 'github.com/EricHibbsGH', href: 'https://github.com/EricHibbsGH' },
   ],
   skills: [
-    'Python', 'JavaScript', 'Java', 'R', 'HTML/CSS', 'Chart.js',
+    'Python', 'JavaScript', 'TypeScript', 'Three.js', 'Java', 'R', 'HTML/CSS', 'Chart.js',
     'Agentic AI', 'Data Analysis', 'Probability Modeling', 'Algorithms & Data Structures',
     'Figma', 'UI/UX', 'Prototyping',
   ],
