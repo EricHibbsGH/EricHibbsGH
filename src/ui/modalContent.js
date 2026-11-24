@@ -78,57 +78,13 @@ async function copyText(text) {
 
 /**
  * Resume exhibit: the real PDF resume, rendered so the whole page fits on screen
- * (no scrolling) with working links, plus an interactive summary as a second tab.
+ * (no scrolling) with its links still clickable.
  */
 function renderResume() {
   const r = resume;
   const url = safeUrl(r.pdfUrl);
-  let view = url ? 'pdf' : 'summary';
-
-  const pdfPane = el('div', { class: 'resume-pdf', id: 'resume-pane-pdf', role: 'tabpanel', 'aria-labelledby': 'resume-tab-pdf' });
-  const summaryPane = el(
-    'div',
-    { class: 'resume-summary', id: 'resume-pane-summary', role: 'tabpanel', 'aria-labelledby': 'resume-tab-summary' },
-    renderResumeSummary(),
-  );
-
-  let mounted = false;
-  const mountPdf = () => {
-    if (mounted || !url) return;
-    mounted = true;
-    mountPdfPage(pdfPane, url, { title: `${r.name} resume, page 1` });
-  };
-
-  const tabs = [
-    { id: 'pdf', label: 'Resume PDF' },
-    { id: 'summary', label: 'Quick summary' },
-  ].map((t) =>
-    el(
-      'button',
-      {
-        type: 'button',
-        role: 'tab',
-        id: `resume-tab-${t.id}`,
-        class: 'seg',
-        'aria-controls': `resume-pane-${t.id}`,
-        onclick: () => show(t.id),
-      },
-      t.label,
-    ),
-  );
-
-  function show(next) {
-    view = next;
-    tabs.forEach((b) => {
-      const on = b.id === `resume-tab-${next}`;
-      b.setAttribute('aria-selected', String(on));
-      b.setAttribute('aria-pressed', String(on));
-    });
-    if (next === 'pdf') mountPdf();
-    pdfPane.hidden = next !== 'pdf';
-    summaryPane.hidden = next !== 'summary';
-  }
-  show(view);
+  const page = el('div', { class: 'resume-pdf' });
+  if (url) mountPdfPage(page, url, { title: `${r.name} resume` });
 
   return el(
     'div',
@@ -136,7 +92,6 @@ function renderResume() {
     el(
       'div',
       { class: 'resume-toolbar' },
-      el('div', { class: 'segmented', role: 'tablist', 'aria-label': 'Resume view' }, tabs),
       el(
         'div',
         { class: 'resume-toolbar-actions' },
@@ -145,90 +100,7 @@ function renderResume() {
       ),
       el('p', { class: 'resume-hint' }, 'Links on the page are clickable. Click anywhere else on the page to open it full size.'),
     ),
-    pdfPane,
-    summaryPane,
-  );
-}
-
-function renderResumeSummary() {
-  const r = resume;
-  const initials = r.name
-    .split(/\s+/)
-    .map((s) => s[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-  const avatar = r.avatar
-    ? el('img', { class: 'avatar', src: safeUrl(r.avatar), alt: `Portrait of ${r.name}` })
-    : el('div', { class: 'avatar avatar--initials', 'aria-hidden': 'true' }, initials);
-
-  return el(
-    'div',
-    { class: 'resume' },
-    el(
-      'aside',
-      { class: 'resume-side' },
-      avatar,
-      el('p', { class: 'resume-name' }, r.name),
-      el('p', { class: 'resume-headline' }, r.headline),
-      el('p', { class: 'resume-loc' }, r.location),
-      sectionLabel('Contact'),
-      el(
-        'ul',
-        { class: 'contact-list' },
-        r.contact.map((c) => el('li', {}, el('span', { class: 'contact-label' }, c.label), link(c.href, c.value))),
-      ),
-      sectionLabel('Core Skills'),
-      el('ul', { class: 'pills' }, r.skills.map((s) => el('li', { class: 'pill' }, s))),
-    ),
-    el(
-      'section',
-      { class: 'resume-main' },
-      sectionLabel('Profile'),
-      el('p', { class: 'lede' }, r.summary),
-      sectionLabel('Experience'),
-      el(
-        'ol',
-        { class: 'timeline' },
-        r.experience.map((job) =>
-          el(
-            'li',
-            { class: 'timeline-item' },
-            el('p', { class: 'timeline-when' }, `${job.start} – ${job.end}`, job.place ? ` · ${job.place}` : ''),
-            el('h4', { class: 'timeline-role' }, job.role, el('span', { class: 'timeline-org' }, ` · ${job.org}`)),
-            el('ul', { class: 'timeline-bullets' }, job.bullets.map((b) => el('li', {}, b))),
-          ),
-        ),
-      ),
-      sectionLabel('Education'),
-      el(
-        'ul',
-        { class: 'edu' },
-        r.education.map((e) =>
-          el(
-            'li',
-            {},
-            el('div', {}, el('strong', {}, e.degree), el('p', { class: 'edu-school' }, e.school), e.note ? el('p', { class: 'edu-note' }, e.note) : null),
-            el('span', {}, e.year),
-          ),
-        ),
-      ),
-      r.organizations?.length ? sectionLabel('Organizations') : null,
-      r.organizations?.length
-        ? el(
-            'ul',
-            { class: 'edu' },
-            r.organizations.map((o) =>
-              el(
-                'li',
-                {},
-                el('div', {}, el('strong', {}, o.role), el('p', { class: 'edu-school' }, o.org), o.note ? el('p', { class: 'edu-note' }, o.note) : null),
-                el('span', {}, o.years),
-              ),
-            ),
-          )
-        : null,
-    ),
+    page,
   );
 }
 
