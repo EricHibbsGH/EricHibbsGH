@@ -754,164 +754,64 @@ export function createSmallArtTexture(seed, aspect, renderer) {
 /* --------------------------------------------------------- personal art */
 /* Original poster designs in each team's colours (no official marks), plus pet portraits. */
 
-function drawPhillies(ctx, W, H) {
+/** Fit a square logo into a box centred at (cx, cy), keeping its proportions. */
+function drawLogo(ctx, logo, cx, cy, size) {
+  if (!logo) return;
+  const s = size / Math.max(logo.width, logo.height);
+  const w = logo.width * s;
+  const h = logo.height * s;
+  ctx.drawImage(logo, cx - w / 2, cy - h / 2, w, h);
+}
+
+function drawPhillies(ctx, W, H, logo) {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = 'rgba(232,24,40,0.16)';
+  ctx.fillStyle = 'rgba(232,24,40,0.14)';
   for (let x = 24; x < W; x += 48) ctx.fillRect(x, 0, 5, H);
   ctx.fillStyle = '#002d72';
   ctx.fillRect(0, H * 0.83, W, H * 0.17);
 
-  // Baseball
-  const cx = W / 2;
-  const cy = H * 0.38;
-  const r = W * 0.27;
-  circle(ctx, cx + 10, cy + 14, r, 'rgba(0,0,0,0.12)');
-  circle(ctx, cx, cy, r, '#ffffff');
-  ctx.strokeStyle = '#d4d4d4';
-  ctx.lineWidth = 6;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(cx, cy, r - 3, 0, Math.PI * 2);
-  ctx.clip();
-  ctx.strokeStyle = '#e81828';
-  for (const side of [-1, 1]) {
-    const ax = cx + side * r * 1.32;
-    const R = r * 0.95;
-    const a0 = side < 0 ? -0.62 : Math.PI - 0.62;
-    ctx.lineWidth = 7;
-    ctx.beginPath();
-    ctx.arc(ax, cy, R, a0, a0 + 1.24);
-    ctx.stroke();
-    ctx.lineWidth = 5;
-    for (let a = a0 + 0.08; a < a0 + 1.2; a += 0.12) {
-      const px = ax + Math.cos(a) * R;
-      const py = cy + Math.sin(a) * R;
-      const tx = -Math.sin(a);
-      const ty = Math.cos(a);
-      for (const s of [-1, 1]) {
-        ctx.beginPath();
-        ctx.moveTo(px, py);
-        ctx.lineTo(px + Math.cos(a) * s * 16 + tx * 9, py + Math.sin(a) * s * 16 + ty * 9);
-        ctx.stroke();
-      }
-    }
-  }
-  ctx.restore();
+  drawLogo(ctx, logo, W / 2, H * 0.36, W * 0.66);
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#e81828';
-  ctx.font = `italic bold ${W * 0.19}px ${SERIF}`;
-  ctx.fillText('Phillies', cx, H * 0.76);
+  ctx.fillStyle = '#002d72';
+  ctx.font = `bold ${W * 0.13}px ${SERIF}`;
+  ctx.fillText('PHILLIES', W / 2, H * 0.76);
   ctx.fillStyle = '#ffffff';
   ctx.font = `bold ${W * 0.045}px ${SANS}`;
-  ctx.fillText('PHILADELPHIA  ·  EST. 1883', cx, H * 0.93);
+  ctx.fillText('PHILADELPHIA  ·  EST. 1883', W / 2, H * 0.93);
 }
 
-function drawEagles(ctx, W, H) {
-  const bg = ctx.createRadialGradient(W * 0.5, H * 0.4, 0, W * 0.5, H * 0.4, H * 0.8);
-  bg.addColorStop(0, '#0a6a73');
-  bg.addColorStop(1, '#003a40');
-  ctx.fillStyle = bg;
+function drawEagles(ctx, W, H, logo) {
+  ctx.fillStyle = '#004c54';
   ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#003a40';
+  ctx.fillRect(0, H * 0.83, W, H * 0.17);
 
-  // Sweeping wing strokes
-  ctx.lineCap = 'round';
-  for (let i = 0; i < 7; i++) {
-    ctx.strokeStyle = i % 2 ? 'rgba(165,172,175,0.9)' : 'rgba(255,255,255,0.92)';
-    ctx.lineWidth = W * (0.028 - i * 0.002);
-    ctx.beginPath();
-    ctx.moveTo(W * 0.12, H * 0.5 - i * H * 0.03);
-    ctx.quadraticCurveTo(W * 0.5, H * 0.16 - i * H * 0.015, W * 0.92, H * 0.1 + i * H * 0.045);
-    ctx.stroke();
-  }
-
-  // Football
-  ctx.save();
-  ctx.translate(W * 0.5, H * 0.54);
-  ctx.rotate(-0.35);
-  ctx.fillStyle = '#7a4424';
-  ctx.beginPath();
-  ctx.ellipse(0, 0, W * 0.21, W * 0.125, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = W * 0.012;
-  for (const sx of [-1, 1]) {
-    ctx.beginPath();
-    ctx.moveTo(sx * W * 0.15, -W * 0.08);
-    ctx.lineTo(sx * W * 0.15, W * 0.08);
-    ctx.stroke();
-  }
-  ctx.beginPath();
-  ctx.moveTo(-W * 0.07, 0);
-  ctx.lineTo(W * 0.07, 0);
-  ctx.stroke();
-  ctx.lineWidth = W * 0.009;
-  for (let i = -3; i <= 3; i++) {
-    ctx.beginPath();
-    ctx.moveTo(i * W * 0.02, -W * 0.022);
-    ctx.lineTo(i * W * 0.02, W * 0.022);
-    ctx.stroke();
-  }
-  ctx.restore();
+  drawLogo(ctx, logo, W / 2, H * 0.37, W * 0.9);
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffffff';
-  ctx.font = `bold ${W * 0.17}px ${SERIF}`;
-  ctx.fillText('EAGLES', W / 2, H * 0.8);
+  ctx.font = `bold ${W * 0.15}px ${SERIF}`;
+  ctx.fillText('EAGLES', W / 2, H * 0.76);
   ctx.fillStyle = '#a5acaf';
   ctx.font = `bold ${W * 0.045}px ${SANS}`;
-  ctx.fillText('GO BIRDS  ·  EST. 1933', W / 2, H * 0.91);
+  ctx.fillText('GO BIRDS  ·  EST. 1933', W / 2, H * 0.93);
 }
 
-function drawFlyers(ctx, W, H) {
-  ctx.fillStyle = '#111111';
-  ctx.fillRect(0, 0, W, H);
+function drawFlyers(ctx, W, H, logo) {
   ctx.fillStyle = '#f74902';
-  ctx.beginPath();
-  ctx.moveTo(0, H * 0.5);
-  ctx.lineTo(W, H * 0.3);
-  ctx.lineTo(W, H);
-  ctx.lineTo(0, H);
-  ctx.closePath();
-  ctx.fill();
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#111111';
+  ctx.fillRect(0, H * 0.83, W, H * 0.17);
 
-  // Crossed sticks
-  ctx.lineCap = 'round';
-  for (const side of [-1, 1]) {
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = W * 0.032;
-    const x0 = W / 2 - side * W * 0.3;
-    const x1 = W / 2 + side * W * 0.14;
-    ctx.beginPath();
-    ctx.moveTo(x0, H * 0.1);
-    ctx.lineTo(x1, H * 0.56);
-    ctx.stroke();
-    ctx.lineWidth = W * 0.05;
-    ctx.beginPath();
-    ctx.moveTo(x1, H * 0.56);
-    ctx.lineTo(x1 + side * W * 0.13, H * 0.585);
-    ctx.stroke();
-  }
-  // Puck
-  ctx.fillStyle = '#0b0b0b';
-  ctx.beginPath();
-  ctx.ellipse(W / 2, H * 0.67, W * 0.12, W * 0.045, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillRect(W / 2 - W * 0.12, H * 0.67 - W * 0.035, W * 0.24, W * 0.035);
-  ctx.fillStyle = '#2a2a2a';
-  ctx.beginPath();
-  ctx.ellipse(W / 2, H * 0.67 - W * 0.035, W * 0.12, W * 0.045, 0, 0, Math.PI * 2);
-  ctx.fill();
+  drawLogo(ctx, logo, W / 2, H * 0.37, W * 0.84);
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `italic bold ${W * 0.17}px ${SERIF}`;
-  ctx.fillText('FLYERS', W / 2, H * 0.84);
   ctx.fillStyle = '#111111';
+  ctx.font = `bold ${W * 0.15}px ${SERIF}`;
+  ctx.fillText('FLYERS', W / 2, H * 0.76);
+  ctx.fillStyle = '#ffffff';
   ctx.font = `bold ${W * 0.045}px ${SANS}`;
   ctx.fillText('BROAD STREET  ·  EST. 1967', W / 2, H * 0.93);
 }
@@ -1050,13 +950,31 @@ function drawCat(ctx, W, H) {
 
 const INTEREST_ART = { phillies: drawPhillies, eagles: drawEagles, flyers: drawFlyers, dog: drawDog, cat: drawCat };
 
+/** Team logos (public/art), drawn onto the posters once they load. */
+const TEAM_LOGOS = {
+  phillies: './art/phillies-logo.png',
+  eagles: './art/eagles-logo.png',
+  flyers: './art/flyers-logo.png',
+};
+
 /** Personal wall art: Philadelphia teams and the pets. */
 export function createInterestArtTexture(style, aspect, renderer) {
   const W = 1024;
   const H = Math.round(W / aspect);
   const [canvas, ctx] = makeCanvas(W, H);
-  (INTEREST_ART[style] || drawDog)(ctx, W, H);
-  return toTexture(canvas, renderer);
+  const draw = INTEREST_ART[style] || drawDog;
+  draw(ctx, W, H, null);
+  const tex = toTexture(canvas, renderer);
+  if (TEAM_LOGOS[style]) {
+    const logo = new Image();
+    logo.decoding = 'async';
+    logo.onload = () => {
+      draw(ctx, W, H, logo);
+      tex.needsUpdate = true;
+    };
+    logo.src = TEAM_LOGOS[style];
+  }
+  return tex;
 }
 
 /** Soft round contact shadow (used under the stick figure). */

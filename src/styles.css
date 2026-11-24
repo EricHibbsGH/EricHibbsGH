@@ -3480,6 +3480,9 @@ kbd {
   will-change: transform;
   animation: seat-tag-in 0.18s ease-out;
 }
+.seat-tag[hidden] {
+  display: none;
+}
 .seat-tag:not(.has-key) {
   padding-left: 10px;
 }
