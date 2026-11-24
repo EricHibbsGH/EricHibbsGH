@@ -4,7 +4,7 @@ const COLORS = {
   wall: '#e6e6e6',
   obstacle: '#444444',
   frame: '#e6e6e6',
-  accent: '#e07a4f',
+  accent: '#eaa7b1',
   text: 'rgba(245,245,245,0.8)',
   player: '#f5f5f5',
 };
@@ -155,7 +155,7 @@ export class Minimap {
       const [mx, my] = this.toMap(f.center.x + f.normal.x * 1.6, f.center.z + f.normal.z * 1.6);
       if (active) {
         const pr = 11 + Math.sin(t * 5) * 2;
-        ctx.fillStyle = 'rgba(224,122,79,0.2)';
+        ctx.fillStyle = 'rgba(214,90,110,0.2)';
         ctx.beginPath();
         ctx.arc(mx, my, pr + 4, 0, Math.PI * 2);
         ctx.fill();
@@ -199,8 +199,8 @@ export class Minimap {
     const ang = Math.atan2(lookY, lookX);
     const len = 46;
     const grad = ctx.createRadialGradient(px, py, 0, px, py, len);
-    grad.addColorStop(0, 'rgba(224,122,79,0.3)');
-    grad.addColorStop(1, 'rgba(224,122,79,0)');
+    grad.addColorStop(0, 'rgba(214,90,110,0.3)');
+    grad.addColorStop(1, 'rgba(214,90,110,0)');
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.moveTo(px, py);

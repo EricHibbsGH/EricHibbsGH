@@ -13,8 +13,8 @@
   --paper: #ffffff;
   --paper-2: #ffffff;
   --panel: rgba(255, 255, 255, 0.97);
-  --accent: #b5532f;
-  --accent-ink: #8f3d1f;
+  --accent: #7a1f2b;
+  --accent-ink: #5c1520;
   --accent-soft: #ffffff;
   --green: #4f7a52;
   --blue: #3d5a73;
@@ -572,8 +572,8 @@ kbd {
 }
 .pdf-link:hover,
 .pdf-link:focus-visible {
-  background: rgba(194, 96, 58, 0.16);
-  outline: 1px solid rgba(194, 96, 58, 0.5);
+  background: rgba(122, 31, 43, 0.16);
+  outline: 1px solid rgba(122, 31, 43, 0.5);
 }
 .pdf-status {
   color: var(--muted);
@@ -1572,7 +1572,7 @@ kbd {
 }
 @keyframes pulse {
   50% {
-    box-shadow: 0 0 0 10px rgba(226, 85, 58, 0.22), var(--shadow);
+    box-shadow: 0 0 0 10px rgba(122, 31, 43, 0.22), var(--shadow);
   }
 }
 @keyframes flow {
@@ -1739,7 +1739,9 @@ kbd {
   --hud-line-strong: rgba(255, 255, 255, 0.22);
   --hud-text: #f5f5f5;
   --hud-muted: rgba(245, 245, 245, 0.62);
-  --hud-accent: #e07a4f;
+  --hud-accent: #7a1f2b;
+  --hud-accent-hover: #922838;
+  --hud-accent-text: #eaa7b1; /* accent text on the dark HUD */
   --hud-hover: rgba(255, 255, 255, 0.08);
   --topbar-h: 60px;
 }
@@ -1851,7 +1853,7 @@ kbd {
   right: 16px;
   bottom: -1px;
   height: 2px;
-  background: var(--hud-accent);
+  background: var(--hud-accent-text);
   transform: scaleX(0);
   transform-origin: left center;
   transition: transform 0.32s var(--ease-out);
@@ -1879,7 +1881,7 @@ kbd {
 .qt-num {
   font: 500 0.66rem/1 var(--font-mono);
   letter-spacing: 0.04em;
-  color: var(--hud-accent);
+  color: var(--hud-accent-text);
 }
 .qt-check {
   display: none;
@@ -1935,8 +1937,8 @@ kbd {
 }
 .topbar .hud-chip[aria-expanded='true'],
 .topbar .hud-chip.is-muted {
-  background: rgba(224, 122, 79, 0.16);
-  border-color: rgba(224, 122, 79, 0.65);
+  background: rgba(146, 40, 56, 0.42);
+  border-color: rgba(234, 167, 177, 0.55);
   color: var(--hud-text);
 }
 .topbar .hud-chip[aria-expanded='true']:hover,
@@ -2003,7 +2005,7 @@ kbd {
   stroke-linecap: round;
 }
 .toast-mouse-btn {
-  fill: var(--hud-accent);
+  fill: var(--hud-accent-text);
   stroke: none;
   animation: toast-click 1.6s ease-in-out infinite;
 }
@@ -2057,7 +2059,7 @@ kbd {
 .guide-arrow {
   border-radius: 6px;
   background: var(--hud-accent);
-  color: var(--hud-solid);
+  color: #fff;
 }
 .guide-text span {
   color: var(--hud-muted);
@@ -2067,7 +2069,7 @@ kbd {
   border-radius: 8px;
 }
 .coach-step {
-  color: var(--hud-accent);
+  color: var(--hud-accent-text);
   font-size: 0.7rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -2100,7 +2102,7 @@ kbd {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: rgba(224, 122, 79, 0.22);
+  background: rgba(146, 40, 56, 0.5);
   transform: scaleX(0);
   transform-origin: left center;
   transition: transform 0.35s var(--ease-out);
@@ -2112,9 +2114,9 @@ kbd {
 .is-touch .hud-prompt-tap {
   border-radius: 6px;
   background: var(--hud-accent);
-  color: var(--hud-solid);
+  color: #fff;
   border: 0;
-  border-bottom: 2px solid #b5552f;
+  border-bottom: 2px solid #4f121b;
 }
 
 /* ---- Touch controls ---- */
@@ -2160,14 +2162,14 @@ kbd {
 .intro .btn--primary {
   background: var(--hud-accent);
   border-color: var(--hud-accent);
-  color: var(--hud-solid);
+  color: #fff;
 }
 .intro .btn--primary::before {
   background: var(--hud-text);
 }
 .intro .btn--primary:hover:not(:disabled) {
-  background: var(--hud-accent);
-  color: var(--hud-solid);
+  background: var(--hud-accent-hover);
+  color: #fff;
   border-color: var(--hud-text);
 }
 
@@ -2523,7 +2525,7 @@ kbd {
   fill: #fff;
 }
 .hib-node.is-active .hib-node-num {
-  fill: #f0a07a;
+  fill: #eaa7b1;
 }
 .hib-center-kicker {
   text-anchor: middle;
@@ -2636,7 +2638,7 @@ kbd {
   color: var(--ink);
 }
 .hib-matrix .is-col {
-  background: rgba(194, 96, 58, 0.08);
+  background: rgba(122, 31, 43, 0.08);
 }
 .hib-row-head {
   text-align: left !important;
@@ -2678,7 +2680,7 @@ kbd {
   background: var(--accent);
   border-color: var(--accent);
   transform: scale(1.25);
-  box-shadow: 0 0 0 4px rgba(194, 96, 58, 0.18);
+  box-shadow: 0 0 0 4px rgba(122, 31, 43, 0.18);
 }
 .hib-empty {
   color: #cfcfcf;
@@ -2865,7 +2867,7 @@ kbd {
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2);
 }
 .hib-canvas:focus-visible {
-  box-shadow: 0 0 0 3px rgba(194, 96, 58, 0.55);
+  box-shadow: 0 0 0 3px rgba(122, 31, 43, 0.55);
 }
 .hib-results {
   display: grid;
@@ -2920,14 +2922,14 @@ kbd {
 .hib-fitts-start.btn--primary {
   background: var(--hud-accent);
   border-color: var(--hud-accent);
-  color: var(--hud-solid);
+  color: #fff;
 }
 .hib-fitts-start.btn--primary::before {
   background: var(--hud-text);
 }
 .hib-fitts-start.btn--primary:hover:not(:disabled) {
-  background: var(--hud-accent);
-  color: var(--hud-solid);
+  background: var(--hud-accent-hover);
+  color: #fff;
   border-color: var(--hud-text);
 }
 .hib-fitts-start[hidden] {
@@ -2937,8 +2939,8 @@ kbd {
   position: absolute;
   border: 0;
   border-radius: 50%;
-  background: var(--hud-accent, #e07a4f);
-  box-shadow: 0 0 0 4px rgba(224, 122, 79, 0.25);
+  background: var(--hud-accent, #7a1f2b);
+  box-shadow: 0 0 0 4px rgba(122, 31, 43, 0.3);
   cursor: pointer;
   animation: fitts-in 0.18s var(--ease-out);
 }
@@ -3385,9 +3387,9 @@ kbd {
   color: #fff;
 }
 .hib-fitts-start.btn--primary:hover:not(:disabled) {
-  background: #c8693f;
-  border-color: #c8693f;
-  color: var(--hud-solid);
+  background: #922838;
+  border-color: #922838;
+  color: #fff;
 }
 
 /* ---- Resume: the modal hugs the fitted page, so there is no dead space beside it ---- */
@@ -3411,11 +3413,11 @@ kbd {
 .topbar .hud-chip--cta:hover {
   background: var(--hud-accent);
   border-color: var(--hud-accent);
-  color: #121212;
+  color: #fff;
 }
 .topbar .hud-chip--cta:hover {
-  background: #ea8a60;
-  border-color: #ea8a60;
+  background: #922838;
+  border-color: #922838;
 }
 .badge {
   border: 1px solid var(--accent);
@@ -3444,4 +3446,51 @@ kbd {
 /* Project covers are real screenshots: keep the top of the page (its headline) in frame. */
 .project-thumb img {
   object-position: top center;
+}
+
+/* Optical centring: trim each label's line box to cap height + baseline so text
+   sits in the middle of its button instead of riding high over the descender gap. */
+.hud-chip > .label,
+.btn > span,
+.qt-link > .qt-text,
+.hud-prompt > span:not(.hud-prompt-tap),
+.guide-text {
+  text-box: trim-both cap alphabetic;
+}
+
+/* Seat hint: follows the pointer while it is over a chair, sofa or bench. */
+.hud-tip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 30;
+  display: grid;
+  gap: 4px;
+  padding: 9px 12px;
+  pointer-events: none !important;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  will-change: transform;
+}
+.hud-tip.is-visible {
+  opacity: 1;
+}
+.hud-tip strong {
+  font-weight: 400;
+  font-size: 0.92rem;
+  color: var(--hud-text);
+}
+.hud-tip span {
+  font-size: 0.76rem;
+  color: var(--hud-muted);
+}
+.hud-tip kbd {
+  display: inline-block;
+  min-width: 18px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: var(--hud-accent);
+  color: #fff;
+  font: 400 0.7rem/1 var(--font-mono);
+  text-align: center;
 }

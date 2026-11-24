@@ -569,12 +569,12 @@ function controlMappingLab() {
     if (!done) {
       const [tx, ty] = TARGETS[Math.min(hits, TARGETS.length - 1)];
       const pulse = 1 + Math.sin(now / 220) * 0.08;
-      ctx.strokeStyle = '#e07a4f';
+      ctx.strokeStyle = '#d65a6e';
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.arc(tx * W, ty * H, 16 * pulse, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.fillStyle = 'rgba(224,122,79,0.25)';
+      ctx.fillStyle = 'rgba(214,90,110,0.25)';
       ctx.fill();
     }
     ctx.save();

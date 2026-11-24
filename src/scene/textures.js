@@ -12,8 +12,9 @@ export const PALETTE = {
   ink2: '#4a3f36',
   paper: '#ffffff',
   cream: '#f5f5f4',
-  accent: '#c2603a',
-  accentSoft: '#f0c9b3',
+  accent: '#7a1f2b',
+  accentBright: '#b23a4e', // accent drawn on dark grounds
+  accentSoft: '#ecc9ce',
   blue: '#3d5a73',
   green: '#4f7a52',
   gold: '#c99a3e',
@@ -200,7 +201,7 @@ function drawGithub(ctx, W, H, rand) {
   rows.forEach((r, i) => {
     const y = bar + H * 0.08 + i * H * 0.065;
     const indent = i > 0 && i < 4 ? W * 0.025 : 0;
-    fillRR(ctx, W * 0.03 + indent, y - H * 0.02, H * 0.022, H * 0.022, 3, i === 2 ? PALETTE.accent : '#4a5060');
+    fillRR(ctx, W * 0.03 + indent, y - H * 0.02, H * 0.022, H * 0.022, 3, i === 2 ? PALETTE.accentBright : '#4a5060');
     ctx.fillStyle = i === 2 ? '#f0f0f0' : '#8a90a0';
     ctx.fillText(r, W * 0.03 + indent + H * 0.04, y);
   });
@@ -211,7 +212,7 @@ function drawGithub(ctx, W, H, rand) {
   ctx.font = `700 ${H * 0.3}px ${MONO}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = PALETTE.accent;
+  ctx.fillStyle = PALETTE.accentBright;
   ctx.fillText('</>', cx, cy);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
@@ -242,7 +243,7 @@ function drawGithub(ctx, W, H, rand) {
   for (let c = 0; c < 30; c++) {
     for (let r = 0; r < 3; r++) {
       const v = rand();
-      const color = v > 0.8 ? PALETTE.accent : v > 0.55 ? '#a8442f' : v > 0.3 ? '#5a2c24' : '#23262f';
+      const color = v > 0.8 ? PALETTE.accentBright : v > 0.55 ? '#7a1f2b' : v > 0.3 ? '#45161d' : '#23262f';
       fillRR(ctx, gx + c * cell, gy + r * cell, cell * 0.78, cell * 0.78, 3, color);
     }
   }
@@ -1131,7 +1132,7 @@ export function projectThumbnail(title, index) {
   const [canvas, ctx] = makeCanvas(W, H);
   const rand = mulberry32(index * 97 + title.length * 13 + 5);
   const schemes = [
-    ['#17181c', PALETTE.accent, '#ffffff'],
+    ['#17181c', PALETTE.accentBright, '#ffffff'],
     ['#ffffff', PALETTE.ink, PALETTE.accent],
     ['#1f2a44', '#7aa2ff', '#ffffff'],
     ['#f7f7f7', '#2f9e6b', PALETTE.ink],
@@ -1262,7 +1263,7 @@ export function createGuideArrowTexture(renderer) {
   ctx.stroke();
   ctx.setLineDash([]);
   // Arrowhead pointing "up" in texture space (= forward along the plane's -Y → world direction).
-  ctx.fillStyle = PALETTE.accent;
+  ctx.fillStyle = PALETTE.accentBright;
   ctx.strokeStyle = 'rgba(251,246,236,0.95)';
   ctx.lineWidth = 10;
   ctx.beginPath();

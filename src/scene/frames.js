@@ -9,7 +9,7 @@ const DEPTH = 0.09;
 const MAT_PAD = 0.12;
 const STAND_DISTANCE = 2.0;
 const GLOW = new THREE.Color('#ffb36b');
-const ACCENT = new THREE.Color(PALETTE.accent);
+const ACCENT = new THREE.Color(PALETTE.accentBright);
 const INK = new THREE.Color('#6b5440');
 const FRAME_FINISHES = [
   { color: '#5b3a22', roughness: 0.5, metalness: 0.05 }, // walnut
