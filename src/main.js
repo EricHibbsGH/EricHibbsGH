@@ -211,8 +211,10 @@ const lookToast = {
   done: false,
   show() {
     if (this.done || !world || modals.isOpen) return;
+    // On touch screens the coach card already teaches looking around.
     if (document.documentElement.classList.contains('is-touch')) {
-      this.el.querySelector('.toast-sub').textContent = 'Drag with one finger to look around';
+      this.done = true;
+      return;
     }
     this.el.classList.add('is-visible');
     this.timer = setTimeout(() => this.hide(), 7000);
@@ -257,6 +259,7 @@ async function createWorld() {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 120);
+  fitCamera(camera);
   await waitForFonts();
 
   const gallery = buildGallery(scene, { renderer, site, wallArt });
@@ -406,14 +409,35 @@ async function createWorld() {
   });
 
   window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
+    fitCamera(camera);
     renderer.setSize(window.innerWidth, window.innerHeight, false);
     renderer.setPixelRatio(quality.ratio());
     minimap.resize();
   });
 
   return { renderer, scene, camera, gallery, frames, figure, controller, cam, minimap, compass, compassPivot, marker, seats };
+}
+
+/**
+ * Field of view that suits the screen shape. Landscape keeps the 58° framing; a
+ * portrait phone widens the vertical angle so the sides of the room stay in view,
+ * capped before it turns fish-eye, and shifts the lens to show more wall.
+ */
+function fitCamera(camera) {
+  const aspect = window.innerWidth / window.innerHeight;
+  const portraitFov = (2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(31)) / aspect) * 180) / Math.PI;
+  camera.aspect = aspect;
+  camera.fov = aspect < 1 ? Math.min(70, Math.max(58, portraitFov)) : 58;
+  // A tall screen would centre the figure and fill the bottom half with floor.
+  // Shift the lens up instead (no extra distortion): the figure sits low and the
+  // walls and paintings get the top of the screen.
+  if (aspect < 0.9) {
+    const h = window.innerHeight;
+    camera.setViewOffset(window.innerWidth, h, 0, -h * 0.1, window.innerWidth, h);
+  } else {
+    camera.clearViewOffset();
+  }
+  camera.updateProjectionMatrix();
 }
 
 /* ----------------------------------------------------------------- loop */

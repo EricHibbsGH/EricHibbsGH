@@ -3709,3 +3709,228 @@ kbd {
     width: 100%;
   }
 }
+
+/* ==========================================================================
+   Phones. Top: name + three icon buttons, then the four exhibits as a full-
+   width segmented row. Bottom: joystick left, jump right, on one line inside
+   the safe area, with the "Next" pill and prompts centred just above them.
+   ========================================================================== */
+@media (max-width: 760px) {
+  :root {
+    --topbar-h: 98px;
+    --pad-x: max(12px, env(safe-area-inset-left));
+    --pad-r: max(12px, env(safe-area-inset-right));
+    --pad-b: max(16px, env(safe-area-inset-bottom));
+    --stick: 112px;
+  }
+
+  .topbar {
+    height: auto;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    row-gap: 8px;
+    column-gap: 8px;
+    padding: calc(env(safe-area-inset-top) + 8px) var(--pad-r) 8px var(--pad-x);
+  }
+  .topbar-brand {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .topbar .hud-brand {
+    font-size: 1.08rem;
+  }
+  .topbar-role,
+  .topbar-divider {
+    display: none;
+  }
+  .topbar .hud-actions {
+    gap: 6px;
+  }
+  .topbar .hud-chip {
+    width: 38px;
+    height: 38px;
+  }
+  /* Keyboard legend is meaningless on a phone. */
+  .topbar #btn-controls,
+  .hud-legend {
+    display: none !important;
+  }
+
+  .topbar .qt {
+    order: 3;
+    flex: 1 0 100%;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    height: 40px;
+    overflow: visible;
+  }
+  .topbar .qt-link {
+    justify-content: center;
+    gap: 5px;
+    padding: 0 4px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  .qt-check {
+    width: 11px;
+    height: 11px;
+    background-size: 6px;
+    flex: none;
+  }
+
+  /* First-visit coach: a full-width card under the bar. */
+  .hud-coach {
+    left: var(--pad-x);
+    right: var(--pad-r);
+    top: calc(env(safe-area-inset-top) + var(--topbar-h) + 10px);
+    transform: translateY(-8px);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: 'step step skip' 'keys text skip';
+    align-items: center;
+    gap: 4px 10px;
+    padding: 10px 10px 10px 12px;
+    font-size: 0.86rem;
+    line-height: 1.3;
+  }
+  .hud-coach.is-visible {
+    transform: none;
+  }
+  .coach-step {
+    grid-area: step;
+    font-size: 0.64rem;
+  }
+  .coach-keys {
+    grid-area: keys;
+  }
+  .coach-keys kbd {
+    min-width: 0;
+    height: 1.9em;
+    padding: 0 7px;
+    font-size: 0.72rem;
+  }
+  .coach-text {
+    grid-area: text;
+  }
+  .coach-skip {
+    grid-area: skip;
+    align-self: center;
+  }
+
+  /* The exhibit row covers quick travel; the map is too cramped at this size. */
+  .hud-minimap {
+    display: none !important;
+  }
+
+  .hud-prompt {
+    max-width: calc(100% - var(--pad-x) - var(--pad-r));
+    bottom: calc(var(--pad-b) + var(--stick) + 18px);
+  }
+  /* "Next" sits up top, clear of the figure; it steps below the coach card while that shows. */
+  .hud-guide {
+    top: calc(env(safe-area-inset-top) + var(--topbar-h) + 10px);
+    bottom: auto;
+    max-width: calc(100% - var(--pad-x) - var(--pad-r));
+    gap: 10px;
+    padding: 6px 14px 6px 6px;
+  }
+  body:has(.hud-coach.is-visible) .hud-guide {
+    top: calc(env(safe-area-inset-top) + var(--topbar-h) + 96px);
+  }
+  .guide-arrow {
+    width: 34px;
+    height: 34px;
+  }
+  .guide-text strong {
+    font-size: 0.92rem;
+  }
+  .guide-text span {
+    font-size: 0.76rem;
+  }
+
+  .hud-toast {
+    left: var(--pad-x);
+    right: var(--pad-r);
+    top: calc(env(safe-area-inset-top) + var(--topbar-h) + 10px);
+    transform: none;
+  }
+}
+
+/* Touch controls on any touch screen: same bottom line, inside the safe area. */
+.is-touch .joystick {
+  left: var(--pad-x, max(20px, env(safe-area-inset-left)));
+  bottom: var(--pad-b, max(20px, env(safe-area-inset-bottom)));
+  width: var(--stick, 120px);
+  height: var(--stick, 120px);
+  background: rgba(18, 18, 18, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.is-touch .joystick.is-active {
+  background: rgba(18, 18, 18, 0.65);
+}
+.is-touch .joystick-knob {
+  width: 46px;
+  height: 46px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.is-touch .touch-jump {
+  right: var(--pad-r, max(20px, env(safe-area-inset-right)));
+  bottom: calc(var(--pad-b, max(20px, env(safe-area-inset-bottom))) + (var(--stick, 120px) - 68px) / 2);
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: rgba(18, 18, 18, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+}
+.is-touch .touch-jump:active {
+  background: var(--hud-accent);
+}
+/* Bigger tablets keep the map, but above the jump button rather than under it. */
+@media (min-width: 761px) and (min-height: 501px) {
+  .is-touch .hud-minimap {
+    bottom: calc(max(20px, env(safe-area-inset-bottom)) + 140px);
+  }
+  .is-touch .hud-guide,
+  .is-touch .hud-prompt {
+    bottom: calc(max(20px, env(safe-area-inset-bottom)) + 140px);
+  }
+}
+
+/* Phones on their side: little height, so no map, the pill tucked under the bar,
+   and a smaller stick. */
+@media (max-height: 500px) and (pointer: coarse) {
+  :root {
+    --stick: 100px;
+    --pad-b: max(14px, env(safe-area-inset-bottom));
+    --pad-x: max(14px, env(safe-area-inset-left));
+    --pad-r: max(14px, env(safe-area-inset-right));
+  }
+  .hud-minimap,
+  .hud-legend,
+  .topbar #btn-controls {
+    display: none !important;
+  }
+  .hud-guide {
+    top: calc(env(safe-area-inset-top) + var(--topbar-h) + 8px);
+    bottom: auto;
+    padding: 5px 12px 5px 5px;
+  }
+  .guide-arrow {
+    width: 30px;
+    height: 30px;
+  }
+  .hud-prompt {
+    bottom: calc(var(--pad-b) + 12px);
+  }
+  .hud-coach {
+    top: calc(env(safe-area-inset-top) + var(--topbar-h) + 8px);
+  }
+  body:has(.hud-coach.is-visible) .hud-guide {
+    opacity: 0;
+  }
+}

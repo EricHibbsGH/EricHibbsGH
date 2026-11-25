@@ -24,11 +24,19 @@ function setText(node, value) {
   if (node.textContent !== value) node.textContent = value;
 }
 
-const COACH_STEPS = [
-  { keys: ['W', 'A', 'S', 'D'], text: 'Walk around (arrow keys work too)' },
-  { keys: ['Click'], text: 'Or click anywhere on the floor to walk there' },
-  { keys: ['E'], text: 'Follow the arrow to a painting, then press E' },
-];
+const IS_TOUCH = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+
+const COACH_STEPS = IS_TOUCH
+  ? [
+      { keys: ['Joystick'], text: 'Drag the joystick to walk' },
+      { keys: ['Tap'], text: 'Or tap the floor to walk there' },
+      { keys: ['Drag'], text: 'Drag the room to look around, then tap a painting' },
+    ]
+  : [
+      { keys: ['W', 'A', 'S', 'D'], text: 'Walk around (arrow keys work too)' },
+      { keys: ['Click'], text: 'Or click anywhere on the floor to walk there' },
+      { keys: ['E'], text: 'Follow the arrow to a painting, then press E' },
+    ];
 
 /**
  * Wayfinding for first-time visitors:
