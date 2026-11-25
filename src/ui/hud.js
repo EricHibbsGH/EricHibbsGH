@@ -9,7 +9,7 @@ import { el } from './dom.js';
  * The mini-map (bottom-right) lives in minimap.js.
  */
 export class Hud {
-  constructor({ site, exhibits, contactHref, resumeUrl, muted, onTravel, onInteract, onToggleMute }) {
+  constructor({ site, exhibits, contactHref, resumeUrl, onTravel, onInteract }) {
     document.getElementById('hud-brand').textContent = site.owner;
     document.getElementById('hud-role').textContent = site.role;
 
@@ -43,13 +43,6 @@ export class Hud {
       nav.append(btn);
     });
 
-    this.muteBtn = document.getElementById('btn-mute');
-    this.muteBtn.addEventListener('click', (e) => {
-      if (e.detail > 0) this.muteBtn.blur();
-      onToggleMute();
-    });
-    this.setMuted(muted);
-
     this.legend = document.getElementById('hud-legend');
     this.controlsBtn = document.getElementById('btn-controls');
     this.controlsBtn.addEventListener('click', (e) => {
@@ -66,12 +59,6 @@ export class Hud {
       onInteract();
     });
     this.promptExhibit = null;
-  }
-
-  setMuted(muted) {
-    this.muteBtn.setAttribute('aria-pressed', String(muted));
-    this.muteBtn.querySelector('.label').textContent = muted ? 'Unmute Audio' : 'Mute Audio';
-    this.muteBtn.classList.toggle('is-muted', muted);
   }
 
   setLegendVisible(visible) {

@@ -58,9 +58,9 @@
             <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16" /></svg>
             <span class="label">Resume PDF</span>
           </a>
-          <button type="button" class="hud-chip" id="btn-mute" aria-pressed="false" title="Mute audio">
+          <button type="button" class="hud-chip" id="btn-mute" aria-expanded="false" aria-controls="sound-panel" title="Sound">
             <svg class="icon icon-sound" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" /><path class="wave" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" /><path class="mute-x" d="M16 9l6 6M22 9l-6 6" /></svg>
-            <span class="label">Mute Audio</span>
+            <span class="label">Sound</span>
           </button>
           <button type="button" class="hud-chip" id="btn-controls" aria-expanded="true" aria-controls="hud-legend" title="Show or hide the controls">
             <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2.5" /><path d="M6.5 10h1M10 10h1M13.5 10h1M17 10h1M8 14h8" /></svg>
@@ -68,6 +68,7 @@
           </button>
         </div>
       </header>
+      <div class="hud-panel sound-panel" id="sound-panel" role="group" aria-label="Sound" hidden></div>
 
       <aside class="hud-panel hud-legend" id="hud-legend" aria-label="Controls">
         <p class="hud-title">Controls</p>

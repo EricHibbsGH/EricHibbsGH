@@ -10,6 +10,7 @@ import { StickFigure } from './player/stickFigure.js';
 import { PlayerController } from './player/controller.js';
 import { FollowCamera } from './camera/followCamera.js';
 import { Hud } from './ui/hud.js';
+import { setupSoundPanel } from './ui/soundPanel.js';
 import { Minimap } from './ui/minimap.js';
 import { ModalManager } from './ui/modals.js';
 import { setupTouchControls } from './ui/touchControls.js';
@@ -42,7 +43,7 @@ let world = null;
 
 // Dev-only inspection handle (stripped from production builds).
 if (import.meta.env.DEV) {
-  window.__gallery = { state, input, get world() { return world; } };
+  window.__gallery = { state, input, audio, get world() { return world; } };
 }
 
 /* ------------------------------------------------------------------ HUD */
@@ -57,14 +58,11 @@ const hud = new Hud({
   exhibits,
   contactHref: resume.contact.find((c) => c.href.startsWith('mailto:'))?.href ?? '',
   resumeUrl: resume.pdfUrl,
-  muted: audio.muted,
   onTravel: (id) => travelTo(id),
   onInteract: () => interact(),
-  onToggleMute: () => {
-    audio.unlock();
-    hud.setMuted(audio.toggle());
-  },
 });
+
+setupSoundPanel({ button: document.getElementById('btn-mute'), panel: document.getElementById('sound-panel'), audio });
 
 const guide = new Guide({ exhibits, hud });
 

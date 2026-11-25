@@ -719,6 +719,15 @@ export function buildGallery(world, { renderer, site, wallArt = {} }) {
     delete st.owner;
   }
 
+  // The moon sits outside, behind the front wall, and walls don't block light in
+  // this scene. Anything hung on that wall would throw its shadow across the room
+  // as if the moon shone through the plaster, so wall decor casts none.
+  scene.updateMatrixWorld(true);
+  const wallPos = new THREE.Vector3();
+  scene.traverse((o) => {
+    if (o.isMesh && o.castShadow && o.getWorldPosition(wallPos).z > halfD - 0.6) o.castShadow = false;
+  });
+
   mergeStatic(scene, world);
 
   return {
