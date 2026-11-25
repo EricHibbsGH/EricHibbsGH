@@ -7,7 +7,9 @@ const DEFAULT_ZOOM = 5.4;
 /**
  * Third-person follow camera. It tracks the stick figure's position at a steady
  * angle — it never spins with the figure — and only eases round to a new angle
- * when asked (to frame a painting). No mouse needed; the wheel adjusts distance.
+ * when asked (to frame a painting). Drag (left or right button, or one finger) to
+ * look around; the wheel, a touchpad swipe or a pinch zooms, and a sideways
+ * two-finger swipe turns the view.
  *
  * Near an exhibit the shot eases in and lifts its target toward the artwork.
  * Inside the room the boom shortens instead of clipping through walls.
@@ -27,7 +29,9 @@ export class FollowCamera {
     this.dir = new THREE.Vector3();
     this.initialized = false;
 
-    // Manual look: right-drag with a mouse, one-finger drag on touch screens.
+    // Manual look: drag with either mouse button (left suits touchpads), or one
+    // finger on touch screens. A drag only starts after a few pixels, so clicks
+    // and taps still walk and open paintings.
     this.pitchOffset = 0;
     this.dragging = false;
     this.manualSince = -Infinity;
@@ -38,25 +42,28 @@ export class FollowCamera {
       'wheel',
       (e) => {
         e.preventDefault();
-        this.zoom = clamp(this.zoom * (1 + Math.sign(e.deltaY) * 0.08), 2.6, 7.5);
+        const scale = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1; // lines / pages → pixels
+        const dy = clamp(e.deltaY * scale, -120, 120);
+        const dx = clamp(e.deltaX * scale, -120, 120);
+        // Pinch on a touchpad arrives as ctrl+wheel; zoom faster so it tracks the fingers.
+        this.zoom = clamp(this.zoom * Math.exp(dy * (e.ctrlKey ? 0.01 : 0.0012)), 2.6, 7.5);
+        // A sideways two-finger swipe turns the view, like dragging.
+        if (!e.ctrlKey && Math.abs(dx) > Math.abs(dy) * 0.5 && dx !== 0) {
+          this.yaw += dx * 0.005;
+          this.manualSince = performance.now();
+        }
       },
       { passive: false },
     );
     dom.addEventListener('contextmenu', (e) => e.preventDefault());
     dom.addEventListener('pointerdown', (e) => {
-      const isRight = e.pointerType === 'mouse' && e.button === 2;
+      const isRight = e.pointerType !== 'touch' && e.button === 2;
+      const isLeft = e.pointerType !== 'touch' && e.button === 0;
       const isTouch = e.pointerType === 'touch';
-      if (!isRight && !isTouch) return;
-      this.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: 0, touch: isTouch };
-      if (isRight) {
-        try {
-          dom.setPointerCapture(e.pointerId); // keep orbiting even if the cursor leaves the canvas
-        } catch {
-          /* pointer already released — the drag still works within the canvas */
-        }
-        this.dragging = true;
-        dom.classList.add('is-looking');
-      }
+      if (!isRight && !isLeft && !isTouch) return;
+      // Right-drag looks straight away; left-drag and touch wait for real movement.
+      this.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: 0, waits: !isRight };
+      if (isRight) this.#beginLook(e.pointerId);
     });
     dom.addEventListener('pointermove', (e) => {
       const d = this.drag;
@@ -66,10 +73,8 @@ export class FollowCamera {
       d.x = e.clientX;
       d.y = e.clientY;
       d.moved += Math.abs(dx) + Math.abs(dy);
-      // Touch only starts looking after a real drag, so taps still walk.
-      if (d.touch && d.moved < 10) return;
-      this.dragging = true;
-      dom.classList.add('is-looking');
+      if (d.waits && d.moved < 8) return;
+      if (!this.dragging) this.#beginLook(e.pointerId);
       this.yaw -= dx * 0.006;
       this.pitchOffset = clamp(this.pitchOffset + dy * 0.004, -0.15, 0.75);
       this.manualSince = performance.now();
@@ -82,6 +87,16 @@ export class FollowCamera {
     };
     dom.addEventListener('pointerup', end);
     dom.addEventListener('pointercancel', end);
+  }
+
+  #beginLook(pointerId) {
+    try {
+      this.dom.setPointerCapture(pointerId); // keep turning even if the cursor leaves the canvas
+    } catch {
+      /* pointer already released: the drag still works within the canvas */
+    }
+    this.dragging = true;
+    this.dom.classList.add('is-looking');
   }
 
   /** True while the visitor is actively orbiting the camera. */

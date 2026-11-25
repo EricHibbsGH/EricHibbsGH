@@ -6,9 +6,10 @@ import { el, svgEl } from './dom.js';
  *   1. The loop          — an animated design cycle; click a stage for questions, methods, evidence
  *   2. Principles        — usability heuristics × real projects, clickable cells
  *   3. Case study        — this gallery's playtest → diagnosis → change history, step by step
- *   4. Try it            — two live HCI experiments (control mapping, Fitts's law)
+ *   4. Try it            — two short tests behind decisions in this gallery (controls, target size)
  *   5. Under the hood    — how this site is put together, as a clickable diagram
  * Every tab returns { node, cleanup } so timers/animation stop when you switch away.
+ * The modal never scrolls: every tab lays itself out inside the height it is given.
  */
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
@@ -74,18 +75,7 @@ export function renderHowIBuild(data) {
     }
   });
 
-  const header = el(
-    'div',
-    { class: 'hib-head' },
-    el('p', { class: 'lede' }, data.intro),
-    el(
-      'ul',
-      { class: 'hib-traits', 'aria-label': 'How I build, in four habits' },
-      data.traits.map((t, i) =>
-        el('li', { class: 'hib-trait' }, el('span', { class: 'hib-trait-num' }, String(i + 1)), el('strong', {}, t.label), el('span', {}, t.detail)),
-      ),
-    ),
-  );
+  const header = el('div', { class: 'hib-head' }, el('p', { class: 'lede' }, data.intro));
 
   select('loop');
   return el('div', { class: 'hib' }, header, tablist, panel);
@@ -394,12 +384,7 @@ function renderCaseStudy({ intro, steps }) {
 function renderLab() {
   const mapping = controlMappingLab();
   const fitts = fittsLab();
-  const node = el(
-    'div',
-    { class: 'hib-lab' },
-    el('p', { class: 'lede' }, 'Two quick experiments behind decisions in this gallery. Your results stay in your browser.'),
-    el('div', { class: 'hib-lab-grid' }, mapping.node, fitts.node),
-  );
+  const node = el('div', { class: 'hib-lab' }, mapping.node, fitts.node);
   return {
     node,
     cleanup: () => {
@@ -409,11 +394,16 @@ function renderLab() {
   };
 }
 
-/** Race the old walk-and-turn controls against screen-relative controls. */
+const SCHEMES = {
+  turn: { label: 'Turn-based', note: 'the old controls', keys: '← → turn · ↑ ↓ move forward and back' },
+  direct: { label: 'Direction-based', note: 'what the gallery uses now', keys: 'each arrow moves you that way' },
+};
+
+/** Test 1: steer through four numbered targets with each control scheme and compare times. */
 function controlMappingLab() {
   const W = 520;
-  const H = 300;
-  const canvas = el('canvas', { class: 'hib-canvas', tabindex: '0', 'aria-label': 'Control mapping arena. Click, then use arrow keys or WASD to reach the targets.' });
+  const H = 280;
+  const canvas = el('canvas', { class: 'hib-canvas', tabindex: '0', 'aria-label': 'Test area. Use the arrow keys, WASD or the arrow buttons to reach targets 1 to 4.' });
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   canvas.width = W * dpr;
   canvas.height = H * dpr;
@@ -421,13 +411,13 @@ function controlMappingLab() {
   ctx.scale(dpr, dpr);
 
   const TARGETS = [
-    [0.82, 0.25],
-    [0.18, 0.72],
-    [0.78, 0.78],
-    [0.3, 0.2],
+    [0.84, 0.24],
+    [0.16, 0.74],
+    [0.8, 0.78],
+    [0.3, 0.22],
   ];
-  const results = { tank: null, screen: null };
-  let mode = 'tank';
+  const results = { turn: null, direct: null };
+  let mode = 'turn';
   let p;
   let hits;
   let t0;
@@ -444,66 +434,108 @@ function controlMappingLab() {
   }
   reset();
 
-  const modeButtons = [
-    ['tank', 'Walk-and-turn (old)'],
-    ['screen', 'Screen-relative (now)'],
-  ].map(([id, label]) => {
+  const keyHint = el('p', { class: 'hib-keyhint' });
+  const modeButtons = Object.entries(SCHEMES).map(([id, s]) => {
     const b = el(
       'button',
       {
         type: 'button',
         class: 'seg',
         'aria-pressed': String(id === mode),
-        onclick: () => {
-          mode = id;
-          modeButtons.forEach((m) => m.setAttribute('aria-pressed', String(m.dataset.mode === mode)));
-          reset();
-          canvas.focus();
-        },
+        onclick: () => setMode(id),
       },
-      label,
+      el('strong', {}, s.label),
+      el('span', {}, s.note),
     );
     b.dataset.mode = id;
     return b;
   });
+  function setMode(id) {
+    mode = id;
+    modeButtons.forEach((m) => m.setAttribute('aria-pressed', String(m.dataset.mode === mode)));
+    keyHint.textContent = `${SCHEMES[mode].label}: ${SCHEMES[mode].keys}.`;
+    reset();
+    canvas.focus({ preventScroll: true });
+  }
+  keyHint.textContent = `${SCHEMES[mode].label}: ${SCHEMES[mode].keys}.`;
 
-  const resultsEl = el('div', { class: 'hib-results' });
+  const resultsEl = el('div', { class: 'hib-results', 'aria-live': 'polite' });
   function renderResults() {
-    const max = Math.max(results.tank ?? 0, results.screen ?? 0, 0.001);
-    resultsEl.replaceChildren(
-      ...[
-        ['tank', 'Walk-and-turn'],
-        ['screen', 'Screen-relative'],
-      ].map(([id, label]) =>
-        el(
-          'div',
-          { class: 'hib-result-row' },
-          el('span', {}, label),
-          el('span', { class: 'hib-bar' }, el('span', { class: `hib-bar-fill hib-bar-fill--${id}`, style: { width: results[id] ? `${(results[id] / max) * 100}%` : '0%' } })),
-          el('strong', {}, results[id] ? `${results[id].toFixed(1)} s` : '—'),
-        ),
+    const max = Math.max(results.turn ?? 0, results.direct ?? 0, 0.001);
+    const rows = Object.entries(SCHEMES).map(([id, s]) =>
+      el(
+        'div',
+        { class: 'hib-result-row' },
+        el('span', {}, s.label),
+        el('span', { class: 'hib-bar' }, el('span', { class: `hib-bar-fill hib-bar-fill--${id}`, style: { width: results[id] ? `${(results[id] / max) * 100}%` : '0%' } })),
+        el('strong', {}, results[id] ? `${results[id].toFixed(1)} s` : '—'),
       ),
     );
+    let verdict;
+    if (results.turn && results.direct) {
+      const slow = Math.max(results.turn, results.direct);
+      const fast = Math.min(results.turn, results.direct);
+      const pct = Math.round(((slow - fast) / slow) * 100);
+      verdict =
+        results.direct <= results.turn
+          ? `Direction-based was ${pct}% faster for you. Matching keys to what you see is why the gallery switched.`
+          : `Turn-based was ${pct}% faster for you this time. Most people are quicker with direction-based; try both again.`;
+    } else if (results.turn || results.direct) {
+      verdict = `Now switch to ${results.turn ? 'Direction-based' : 'Turn-based'} and compare.`;
+    } else {
+      verdict = 'Your two times will appear here.';
+    }
+    resultsEl.replaceChildren(...rows, el('p', { class: 'hib-verdict' }, verdict));
   }
   renderResults();
 
+  const press = (code, down) => {
+    if (down) {
+      keys.add(code);
+      if (!running && !done) {
+        running = true;
+        t0 = performance.now();
+      }
+    } else keys.delete(code);
+  };
   const onKey = (e) => {
     const k = e.code;
     if (!/^(Arrow(Up|Down|Left|Right)|Key[WASD])$/.test(k)) return;
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === 'keydown') {
-      keys.add(k);
-      if (!running && !done) {
-        running = true;
-        t0 = performance.now();
-      }
-    } else keys.delete(k);
+    press(k, e.type === 'keydown');
   };
   canvas.addEventListener('keydown', onKey);
   canvas.addEventListener('keyup', onKey);
   canvas.addEventListener('blur', () => keys.clear());
-  canvas.addEventListener('pointerdown', () => canvas.focus());
+  canvas.addEventListener('pointerdown', () => canvas.focus({ preventScroll: true }));
+
+  // On-screen arrows, so the test works with a mouse or on a phone too.
+  const pad = el(
+    'div',
+    { class: 'hib-pad', role: 'group', 'aria-label': 'Arrow buttons' },
+    [
+      ['ArrowUp', '↑', 'Up'],
+      ['ArrowLeft', '←', 'Left'],
+      ['ArrowDown', '↓', 'Down'],
+      ['ArrowRight', '→', 'Right'],
+    ].map(([code, glyph, name]) => {
+      const b = el('button', { type: 'button', class: `hib-pad-btn hib-pad-btn--${name.toLowerCase()}`, 'aria-label': name }, glyph);
+      // Held while pressed; any release (even off the button) lets go.
+      const up = () => {
+        press(code, false);
+        window.removeEventListener('pointerup', up);
+        window.removeEventListener('pointercancel', up);
+      };
+      b.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        press(code, true);
+        window.addEventListener('pointerup', up);
+        window.addEventListener('pointercancel', up);
+      });
+      return b;
+    }),
+  );
 
   const axis = () => {
     let x = 0;
@@ -524,7 +556,7 @@ function controlMappingLab() {
     last = now;
     const a = axis();
     if (running) {
-      if (mode === 'tank') {
+      if (mode === 'turn') {
         p.heading += a.x * 2.6 * dt;
         const fwd = -a.y * 140;
         p.x += Math.cos(p.heading) * fwd * dt;
@@ -538,7 +570,7 @@ function controlMappingLab() {
       p.x = Math.max(10, Math.min(W - 10, p.x));
       p.y = Math.max(10, Math.min(H - 10, p.y));
       const [tx, ty] = TARGETS[hits];
-      if (Math.hypot(p.x - tx * W, p.y - ty * H) < 22) {
+      if (Math.hypot(p.x - tx * W, p.y - ty * H) < 24) {
         hits++;
         if (hits === TARGETS.length) {
           running = false;
@@ -554,7 +586,7 @@ function controlMappingLab() {
   function draw(now) {
     ctx.fillStyle = '#151515';
     ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     for (let x = 20; x < W; x += 20) {
@@ -566,39 +598,55 @@ function controlMappingLab() {
       ctx.lineTo(W, y + 0.5);
     }
     ctx.stroke();
-    if (!done) {
-      const [tx, ty] = TARGETS[Math.min(hits, TARGETS.length - 1)];
-      const pulse = 1 + Math.sin(now / 220) * 0.08;
-      ctx.strokeStyle = '#d65a6e';
-      ctx.lineWidth = 3;
+
+    // Numbered targets: the next one is bright, later ones faint, reached ones gone.
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    TARGETS.forEach(([tx, ty], i) => {
+      if (i < hits) return;
+      const isNext = i === hits && !done;
+      const r = isNext ? 18 * (1 + Math.sin(now / 220) * 0.06) : 15;
       ctx.beginPath();
-      ctx.arc(tx * W, ty * H, 16 * pulse, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(214,90,110,0.25)';
+      ctx.arc(tx * W, ty * H, r, 0, Math.PI * 2);
+      ctx.fillStyle = isNext ? 'rgba(214,90,110,0.28)' : 'rgba(255,255,255,0.04)';
       ctx.fill();
-    }
+      ctx.lineWidth = isNext ? 3 : 1.5;
+      ctx.strokeStyle = isNext ? '#d65a6e' : 'rgba(255,255,255,0.25)';
+      ctx.stroke();
+      ctx.fillStyle = isNext ? '#fff' : 'rgba(255,255,255,0.45)';
+      ctx.font = `${isNext ? 'bold ' : ''}13px Georgia, serif`;
+      ctx.fillText(String(i + 1), tx * W, ty * H + 1);
+    });
+
+    // The player: an arrow that shows its heading.
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(p.heading);
     ctx.fillStyle = '#f5f5f5';
     ctx.beginPath();
-    ctx.moveTo(12, 0);
+    ctx.moveTo(13, 0);
     ctx.lineTo(-8, 8);
     ctx.lineTo(-4, 0);
     ctx.lineTo(-8, -8);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
-    ctx.fillStyle = 'rgba(245,245,245,0.75)';
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
     ctx.font = '13px Georgia, serif';
-    const status = done
-      ? `Done in ${results[mode].toFixed(1)} s. Now try the other scheme.`
-      : running
-        ? `Target ${hits + 1} of ${TARGETS.length} · ${((now - t0) / 1000).toFixed(1)} s`
-        : document.activeElement === canvas
-          ? 'Press an arrow key or WASD to start'
-          : 'Click here, then use arrow keys / WASD';
-    ctx.fillText(status, 12, H - 12);
+    if (!running && !done) {
+      const msg = document.activeElement === canvas ? 'Press an arrow key to start the clock' : 'Click here, then press an arrow key to start';
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(W / 2 - 170, H / 2 + 26, 340, 34);
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.fillText(msg, W / 2, H / 2 + 48);
+    } else {
+      ctx.fillStyle = 'rgba(245,245,245,0.8)';
+      const status = done ? `Done in ${results[mode].toFixed(1)} s` : `Target ${hits + 1} of ${TARGETS.length} · ${((now - t0) / 1000).toFixed(1)} s`;
+      ctx.fillText(status, 12, H - 12);
+    }
   }
 
   raf = requestAnimationFrame(frame);
@@ -606,27 +654,31 @@ function controlMappingLab() {
   const node = el(
     'section',
     { class: 'hib-exp' },
-    el('h3', { class: 'hib-exp-title' }, 'Control mapping lab'),
+    el('p', { class: 'hib-exp-kicker' }, 'Test 1 · Controls'),
+    el('h3', { class: 'hib-exp-title' }, 'Which controls feel natural?'),
     el(
-      'p',
-      { class: 'hib-exp-copy' },
-      'Reach the four targets with each scheme. Walk-and-turn steers a heading (“left” rotates you); screen-relative moves where the key points. That mismatch is why the gallery switched.',
+      'ol',
+      { class: 'hib-steps' },
+      el('li', {}, 'Pick a scheme.'),
+      el('li', {}, 'Steer the arrow through targets 1 to 4.'),
+      el('li', {}, 'Switch schemes and compare your times.'),
     ),
     el('div', { class: 'segmented hib-modes', role: 'group', 'aria-label': 'Control scheme' }, modeButtons),
-    canvas,
+    keyHint,
+    el('div', { class: 'hib-arena-row' }, canvas, pad),
     resultsEl,
   );
   return { node, cleanup: () => cancelAnimationFrame(raf) };
 }
 
-/** Fitts's law: time to hit a target grows with distance and shrinks with size. */
+/** Test 2 (Fitts's law): small, far targets take longer to hit than big, near ones. */
 function fittsLab() {
   const TRIALS = 10;
   const arena = el('div', { class: 'hib-fitts-arena' });
-  const startBtn = el('button', { type: 'button', class: 'btn btn--primary btn--small hib-fitts-start' }, 'Start: click 10 targets');
-  const plot = el('div', { class: 'hib-plot' });
-  const summary = el('p', { class: 'hib-exp-copy hib-fitts-summary' }, 'Fitts’s law predicts movement time MT = a + b · log₂(D/W + 1): far, small targets take longer. Measure yours.');
-  arena.append(startBtn);
+  const counter = el('span', { class: 'hib-fitts-count', hidden: true });
+  const startBtn = el('button', { type: 'button', class: 'btn btn--primary btn--small hib-fitts-start' }, 'Start: 10 targets');
+  const result = el('div', { class: 'hib-fitts-result', 'aria-live': 'polite' }, el('p', { class: 'hib-verdict' }, 'Your result will appear here.'));
+  arena.append(startBtn, counter);
 
   let trials = [];
   let last = null;
@@ -636,7 +688,7 @@ function fittsLab() {
 
   function spawn() {
     const r = arena.getBoundingClientRect();
-    const w = 18 + Math.random() * 54;
+    const w = 16 + Math.random() * 50;
     const x = 8 + Math.random() * Math.max(10, r.width - w - 16);
     const y = 8 + Math.random() * Math.max(10, r.height - w - 16);
     target?.remove();
@@ -651,6 +703,7 @@ function fittsLab() {
     target.dataset.cy = String(y + w / 2);
     target.addEventListener('pointerdown', hit);
     arena.append(target);
+    counter.textContent = `${trials.length + 1} / ${TRIALS}`;
     shownAt = performance.now();
   }
 
@@ -676,60 +729,88 @@ function fittsLab() {
     const r = arena.getBoundingClientRect();
     last = { x: e.clientX - r.left, y: e.clientY - r.top };
     startBtn.hidden = true;
-    summary.textContent = 'Click each orange target as fast as you can.';
-    plot.replaceChildren();
+    counter.hidden = false;
+    result.replaceChildren(el('p', { class: 'hib-verdict' }, 'Hit each red dot as fast as you can.'));
     spawn();
   });
 
   function finish() {
     target?.remove();
     target = null;
+    counter.hidden = true;
     startBtn.hidden = false;
     startBtn.textContent = 'Run it again';
-    // Least-squares fit: MT = a + b·ID
+
+    // Easy half vs hard half, by index of difficulty.
+    const sorted = [...trials].sort((p, q) => p.id - q.id);
+    const half = Math.floor(sorted.length / 2);
+    const mean = (xs) => xs.reduce((s, t) => s + t.mt, 0) / xs.length;
+    const easy = mean(sorted.slice(0, half));
+    const hard = mean(sorted.slice(half));
+    const avg = mean(trials);
+    const pct = Math.round(((hard - easy) / easy) * 100);
+
+    // Least-squares fit for the chart: MT = a + b·ID
     const n = trials.length;
     const mx = trials.reduce((s, t) => s + t.id, 0) / n;
     const my = trials.reduce((s, t) => s + t.mt, 0) / n;
     const sxx = trials.reduce((s, t) => s + (t.id - mx) ** 2, 0) || 1;
     const b = trials.reduce((s, t) => s + (t.id - mx) * (t.mt - my), 0) / sxx;
     const a = my - b * mx;
-    const throughput = trials.reduce((s, t) => s + t.id / (t.mt / 1000), 0) / n;
-    // Only claim what this visitor's own data shows.
-    const takeaway =
-      b > 25
-        ? 'Each extra bit of difficulty cost you about ' + Math.round(b) + ' ms, which is why the gallery keeps prompts large and close to where you are looking.'
-        : 'Your times barely changed with difficulty this run. Try again moving as fast as you can, and the far, small targets usually start to cost more.';
-    summary.replaceChildren(
-      el('strong', {}, `MT ≈ ${Math.round(a)} + ${Math.round(b)} · ID ms`),
-      ` · throughput ≈ ${throughput.toFixed(1)} bits/s · ${misses} miss${misses === 1 ? '' : 'es'}. `,
-      takeaway,
+
+    const verdict =
+      pct >= 10
+        ? `Small, far dots took you ${pct}% longer than big, near ones. That is Fitts’s law, and it is why the gallery’s prompts are large and appear right where you are looking.`
+        : `Your easy and hard dots took about the same time this run (${pct >= 0 ? '+' : ''}${pct}%). Go as fast as you can and the small, far ones usually start to cost more.`;
+    result.replaceChildren(
+      el(
+        'div',
+        { class: 'hib-stats' },
+        el('div', {}, el('strong', {}, `${Math.round(avg)} ms`), el('span', {}, 'average')),
+        el('div', {}, el('strong', {}, `${Math.round(easy)} ms`), el('span', {}, 'big & near')),
+        el('div', {}, el('strong', {}, `${Math.round(hard)} ms`), el('span', {}, 'small & far')),
+        el('div', {}, el('strong', {}, String(misses)), el('span', {}, misses === 1 ? 'miss' : 'misses')),
+      ),
+      el('p', { class: 'hib-verdict' }, verdict),
+      drawPlot(a, b),
     );
-    drawPlot(a, b);
   }
 
   function drawPlot(a, b) {
     const PW = 300;
-    const PH = 170;
-    const pad = 30;
+    const PH = 120;
+    const pad = 26;
     const maxId = Math.max(4, ...trials.map((t) => t.id));
     const maxMt = Math.max(800, ...trials.map((t) => t.mt)) * 1.1;
     const sx = (v) => pad + (v / maxId) * (PW - pad - 8);
-    const sy = (v) => PH - pad + 4 - (v / maxMt) * (PH - pad - 8);
-    plot.replaceChildren(
-      svgEl(
-        'svg',
-        { viewBox: `0 0 ${PW} ${PH}`, class: 'hib-plot-svg', role: 'img', 'aria-label': 'Your movement time against index of difficulty' },
-        svgEl('line', { x1: pad, y1: sy(0), x2: PW - 6, y2: sy(0), class: 'hib-axis' }),
-        svgEl('line', { x1: pad, y1: sy(0), x2: pad, y2: 6, class: 'hib-axis' }),
-        svgEl('text', { x: PW - 8, y: PH - 6, class: 'hib-axis-label', 'text-anchor': 'end' }, 'difficulty (bits)'),
-        svgEl('text', { x: 4, y: 12, class: 'hib-axis-label' }, 'ms'),
-        svgEl('line', { x1: sx(0), y1: sy(a), x2: sx(maxId), y2: sy(a + b * maxId), class: 'hib-fit' }),
-        trials.map((t) => svgEl('circle', { cx: sx(t.id), cy: sy(t.mt), r: 4, class: 'hib-pt' })),
-      ),
+    const sy = (v) => PH - pad + 6 - (v / maxMt) * (PH - pad - 4);
+    return svgEl(
+      'svg',
+      { viewBox: `0 0 ${PW} ${PH}`, class: 'hib-plot-svg', role: 'img', 'aria-label': 'Each dot is one target: time taken against how hard it was' },
+      svgEl('line', { x1: pad, y1: sy(0), x2: PW - 6, y2: sy(0), class: 'hib-axis' }),
+      svgEl('line', { x1: pad, y1: sy(0), x2: pad, y2: 4, class: 'hib-axis' }),
+      svgEl('text', { x: PW - 8, y: PH - 4, class: 'hib-axis-label', 'text-anchor': 'end' }, 'harder (smaller, further) →'),
+      svgEl('text', { x: 2, y: 10, class: 'hib-axis-label' }, 'ms'),
+      svgEl('line', { x1: sx(0), y1: sy(a), x2: sx(maxId), y2: sy(a + b * maxId), class: 'hib-fit' }),
+      trials.map((t) => svgEl('circle', { cx: sx(t.id), cy: sy(t.mt), r: 4, class: 'hib-pt' })),
     );
   }
 
-  const node = el('section', { class: 'hib-exp' }, el('h3', { class: 'hib-exp-title' }, 'Fitts’s law test'), summary, arena, plot);
+  const node = el(
+    'section',
+    { class: 'hib-exp' },
+    el('p', { class: 'hib-exp-kicker' }, 'Test 2 · Target size'),
+    el('h3', { class: 'hib-exp-title' }, 'Do small, far targets slow you down?'),
+    el(
+      'ol',
+      { class: 'hib-steps' },
+      el('li', {}, 'Press Start.'),
+      el('li', {}, 'Hit 10 red dots as fast as you can; some are small and far, some big and near.'),
+      el('li', {}, 'See how much the hard ones cost you.'),
+    ),
+    arena,
+    result,
+  );
   return { node, cleanup: () => target?.remove() };
 }
 
@@ -805,8 +886,10 @@ function renderArchitecture({ intro, nodes, edges }) {
       el('p', { class: 'eyebrow' }, n.sub),
       el('h3', { class: 'hib-detail-title' }, n.label),
       el('p', { class: 'hib-detail-summary' }, n.description),
-      ins.length ? el('p', { class: 'hib-io' }, el('span', {}, 'Receives from'), ins.join(', ')) : null,
-      outs.length ? el('p', { class: 'hib-io' }, el('span', {}, 'Feeds'), outs.join(', ')) : null,
+      ...[
+        ins.length ? el('p', { class: 'hib-io' }, el('span', {}, 'Receives from'), ins.join(', ')) : null,
+        outs.length ? el('p', { class: 'hib-io' }, el('span', {}, 'Feeds'), outs.join(', ')) : null,
+      ].filter(Boolean),
     );
   }
 

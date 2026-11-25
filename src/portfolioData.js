@@ -270,13 +270,7 @@ export const paper = {
 /* ------------------------------------------------------------------ */
 export const howIBuild = {
   intro:
-    'I make complex things explorable, ground every claim in evidence, and iterate with real people until the interface feels obvious. This exhibit is that process, and it is interactive: try the ideas instead of reading about them.',
-  traits: [
-    { label: 'Explorable over explained', detail: 'Dashboards, simulators and calculators so people can test an idea themselves.' },
-    { label: 'Evidence first', detail: 'Claims traced to code, values checked against sources, performance measured.' },
-    { label: 'Built for a real person', detail: 'My mom, a neighborhood, the visitor in front of the screen.' },
-    { label: 'Fewer gates', detail: 'No accounts, servers or build steps unless they earn their place.' },
-  ],
+    'How I take a real person’s problem to something they can use, with the evidence at each step. Every tab is interactive: try the ideas instead of reading about them.',
 
   /* The design loop (HCI's iterative design cycle) */
   loop: [
@@ -389,7 +383,7 @@ export const howIBuild = {
       cacheops: 'Explains why caching was missed, not just that it was.',
     },
     control: {
-      gallery: 'Esc always closes, keys override click-to-walk, tips can be skipped, right-drag looks anywhere.',
+      gallery: 'Esc always closes, keys override click-to-walk, tips can be skipped, dragging looks anywhere.',
       tlt: 'Interactive calculators let readers change the model’s assumptions themselves.',
       quadchess: 'No account wall: open the page and play, pass-and-play or online.',
     },
@@ -476,7 +470,7 @@ export const howIBuild = {
       { id: 'hud', label: 'HUD & guide', sub: 'status · wayfinding', x: 320, y: 80, description: 'The top bar, mini-map, direction pill and coach keep visitors oriented: where they are, where to go, what they have seen.' },
       { id: 'controller', label: 'Controller', sub: 'screen-relative · collisions', x: 320, y: 280, description: 'Maps input to screen directions, slides along furniture, and stops within a tenth of a second when input ends.' },
       { id: 'modals', label: 'Exhibits', sub: 'accessible dialogs', x: 540, y: 80, description: 'Each exhibit opens as a focus-trapped dialog with Esc to close and a deep link (#resume, #paper …).' },
-      { id: 'camera', label: 'Follow camera', sub: 'holds angle · right-drag', x: 540, y: 280, description: 'Tracks the figure without spinning, frames a painting once on arrival, and hands control to the visitor on right-drag.' },
+      { id: 'camera', label: 'Follow camera', sub: 'holds angle · drag to look', x: 540, y: 280, description: 'Tracks the figure without spinning, frames a painting once on arrival, and hands control to the visitor on a drag or touchpad swipe.' },
       { id: 'pdf', label: 'pdf.js', sub: 'loaded on demand', x: 760, y: 80, description: 'The resume renderer is a separate chunk that only downloads when the Resume exhibit opens, so the 3D scene never pays for it.' },
       { id: 'scene', label: 'Scene', sub: 'merged · baked shadows', x: 760, y: 280, description: 'Static furniture is merged into a handful of meshes and shadows are rendered once, because nothing that casts them moves.' },
       { id: 'renderer', label: 'Renderer', sub: 'adaptive resolution', x: 900, y: 180, description: 'Watches the frame rate and trades a little resolution for smoothness when a device struggles, then climbs back.' },

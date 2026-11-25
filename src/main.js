@@ -33,7 +33,7 @@ const state = {
   hoverSeat: null, // seat under the mouse pointer
   modalCooldown: 0,
   travelFocus: null,
-  camYawGoal: 0, // the camera holds this angle; it changes on arrival at a painting or a right-drag
+  camYawGoal: 0, // the camera holds this angle; it changes on arrival at a painting or a look-drag
   framed: false, // already auto-framed during this stop
   moveYaw: 0, // movement basis, latched while keys are held
   idle: 0,
@@ -217,7 +217,7 @@ const lookToast = {
       return;
     }
     this.el.classList.add('is-visible');
-    this.timer = setTimeout(() => this.hide(), 7000);
+    this.timer = setTimeout(() => this.hide(), 14000);
   },
   hide() {
     this.done = true;
@@ -474,7 +474,7 @@ function startLoop(w) {
     }
     // Screen-relative controls: lock the direction mapping while keys are held so
     // a camera ease never bends the path you are walking.
-    // (While right-dragging, directions follow the view live.)
+    // (While drag-looking, directions follow the view live.)
     if (!moving || w.cam.isLooking) state.moveYaw = w.cam.yaw;
 
     w.controller.update(dt, axis, input.running, state.moveYaw);
@@ -530,7 +530,7 @@ function startLoop(w) {
     }
 
     // Camera angle: hold steady while walking; turn to face a painting once, on arrival
-    // (stopping in front of it or quick-travelling to it). A right-drag always wins
+    // (stopping in front of it or quick-travelling to it). A look-drag always wins
     // and its angle sticks.
     if (w.cam.isLooking || w.cam.justLooked) {
       if (!lookToast.done) lookToast.hide(); // they found it

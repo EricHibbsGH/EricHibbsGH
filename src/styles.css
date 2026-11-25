@@ -3811,6 +3811,9 @@ kbd {
   }
   .coach-text {
     grid-area: text;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .coach-skip {
     grid-area: skip;
@@ -3834,8 +3837,9 @@ kbd {
     gap: 10px;
     padding: 6px 14px 6px 6px;
   }
+  /* While the coach card shows it already gives directions; the pill waits. */
   body:has(.hud-coach.is-visible) .hud-guide {
-    top: calc(env(safe-area-inset-top) + var(--topbar-h) + 96px);
+    opacity: 0;
   }
   .guide-arrow {
     width: 34px;
@@ -3933,4 +3937,392 @@ kbd {
   body:has(.hud-coach.is-visible) .hud-guide {
     opacity: 0;
   }
+}
+
+/* ==========================================================================
+   How I Build: a fixed window that never scrolls. The intro and tabs take
+   what they need; the active tab gets the rest and lays out inside it.
+   ========================================================================== */
+.modal.modal--system {
+  height: min(calc(100dvh - 24px), 880px);
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+}
+.modal--system .modal-head {
+  flex: none;
+}
+.modal--system .modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 22px 16px;
+}
+.hib {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hib-head .lede {
+  margin: 0;
+  font-size: 0.9rem;
+  max-width: none;
+}
+.hib-tabs {
+  flex: none;
+  margin: 0;
+}
+.hib-panel {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  padding-top: 4px;
+}
+.hib-panel > * {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.hib-panel .lede {
+  margin: 0 0 8px;
+  font-size: 0.88rem;
+}
+
+/* 1. The loop: ring scales to the height it has; details sit beside it. */
+.hib-loop {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 20px;
+  align-items: stretch;
+}
+.hib-ring-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+}
+.hib-ring {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+.hib-loop-controls,
+.hib-ring-wrap .hib-hint {
+  flex: none;
+  margin: 0;
+}
+.hib-loop .hib-detail {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+}
+.hib-loop .hib-detail > * {
+  margin: 0;
+}
+.hib-detail-title {
+  font-size: 1.35rem;
+}
+.hib-detail-cols {
+  gap: 12px;
+}
+.hib-questions li {
+  margin: 2px 0;
+  font-size: 0.88rem;
+}
+.hib-evidence {
+  display: grid;
+  gap: 4px;
+}
+.hib-evidence li {
+  padding: 6px 10px;
+}
+.hib-evidence li span {
+  font-size: 0.82rem;
+}
+.hib-loop .hib-principle {
+  margin-top: auto;
+  padding: 8px 12px;
+}
+
+/* 2. Principles and 5. Under the hood: diagram + details, side by side. */
+.hib-principles,
+.hib-arch .sd-diagram-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr);
+  gap: 18px;
+  min-height: 0;
+}
+.hib-arch {
+  display: flex;
+  flex-direction: column;
+}
+.hib-arch .sd-diagram-wrap {
+  flex: 1;
+}
+.hib-arch .sd-diagram {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.hib-arch .sd-svg {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+.hib-matrix-wrap,
+.hib-table-scroll {
+  min-height: 0;
+  overflow: hidden;
+}
+.hib-principles .hib-detail,
+.hib-arch .hib-detail {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 3. Case study: the card takes the middle, nav stays at the bottom. */
+.hib-case {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hib-case .hib-case-card {
+  flex: none;
+  min-height: 0;
+  overflow: hidden;
+  margin: 0;
+}
+.hib-case-nav {
+  flex: none;
+  margin: auto 0 0;
+}
+
+/* 4. Try it: two tests side by side, each a clear column of steps. */
+.hib-lab {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.hib-lab .hib-exp {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+.hib-exp > * {
+  margin: 0;
+}
+.hib-exp-kicker {
+  font: italic 400 0.82rem/1 var(--font-serif);
+  color: var(--accent-ink);
+}
+.hib-exp-title {
+  font: 400 1.15rem/1.2 var(--font-serif);
+}
+.hib-steps {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 0.84rem;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+.hib-modes .seg {
+  display: grid;
+  gap: 1px;
+  text-align: left;
+  line-height: 1.2;
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+}
+.hib-modes .seg span {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.hib-keyhint {
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+.hib-arena-row {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+.hib-arena-row .hib-canvas {
+  justify-self: center;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 8px;
+}
+.hib-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 36px);
+  grid-template-rows: repeat(2, 36px);
+  gap: 4px;
+}
+.hib-pad-btn {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+.hib-pad-btn:active {
+  background: var(--ink);
+  color: #fff;
+}
+.hib-pad-btn--up {
+  grid-column: 2;
+  grid-row: 1;
+}
+.hib-pad-btn--left {
+  grid-column: 1;
+  grid-row: 2;
+}
+.hib-pad-btn--down {
+  grid-column: 2;
+  grid-row: 2;
+}
+.hib-pad-btn--right {
+  grid-column: 3;
+  grid-row: 2;
+}
+.hib-results {
+  display: grid;
+  gap: 4px;
+}
+.hib-verdict {
+  margin: 2px 0 0;
+  font-size: 0.84rem;
+  color: var(--ink);
+}
+.hib-fitts-arena {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+}
+.hib-fitts-count {
+  position: absolute;
+  left: 10px;
+  top: 8px;
+  font: 400 0.75rem/1 var(--font-mono);
+  color: rgba(255, 255, 255, 0.7);
+}
+.hib-fitts-count[hidden] {
+  display: none;
+}
+.hib-fitts-result {
+  display: grid;
+  gap: 6px;
+}
+.hib-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.hib-stats div {
+  display: grid;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  text-align: center;
+}
+.hib-stats strong {
+  font-size: 0.98rem;
+}
+.hib-stats span {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.hib-fitts-result .hib-plot-svg {
+  width: 100%;
+  max-height: 110px;
+}
+
+/* Phones: the tabs stack and the panel may scroll inside itself. */
+@media (max-width: 760px) {
+  .modal.modal--system {
+    height: 94dvh;
+  }
+  .hib-panel {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .hib-loop,
+  .hib-principles,
+  .hib-arch .sd-diagram-wrap,
+  .hib-lab {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hib-ring {
+    max-height: 260px;
+  }
+  .hib-arena-row {
+    flex: none;
+  }
+  .hib-fitts-arena {
+    flex: none;
+    height: 220px;
+  }
+}
+
+/* Look-around notice (mouse and touchpad): larger, with the left button lit. */
+.hud-toast {
+  gap: 16px;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 16px 22px 16px 18px;
+  border: 1px solid rgba(234, 167, 177, 0.45);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+}
+.hud-toast .toast-mouse {
+  width: 30px;
+  height: 42px;
+}
+.hud-toast .toast-text {
+  gap: 4px;
+  white-space: normal;
+}
+.hud-toast .toast-text strong {
+  font-size: 1.2rem;
+}
+.hud-toast .toast-sub {
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+.hud-toast .toast-sub b {
+  color: var(--hud-accent-text);
+  font-weight: 700;
+}
+/* The arena centres the Start button itself, so pressing it can't shift it
+   (a shared .btn:active rule removes transforms) and swallow the click. */
+.hib-fitts-arena .hib-fitts-start {
+  position: static;
+  transform: none;
 }
