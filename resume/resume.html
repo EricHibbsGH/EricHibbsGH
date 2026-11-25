@@ -10,7 +10,8 @@
   @page { size: letter; margin: 0.38in 0.42in; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body { font: 9.4pt/1.16 'Resume Sans', sans-serif; color: #111; }
+  :root { --fs: 9.7pt; --lh: 12pt; --gap-sec: 9.75pt; --gap-item: 3pt; }
+  body { font: var(--fs)/var(--lh) 'Resume Sans', sans-serif; color: #111; }
   a { color: inherit; text-decoration: none; }
 
   header { text-align: center; }
@@ -20,9 +21,9 @@
   .contact span { display: inline-flex; align-items: center; gap: 4pt; }
   .contact svg { width: 8.5pt; height: 8.5pt; fill: #111; }
 
-  section { margin-top: 6pt; }
+  section { margin-top: var(--gap-sec); }
   h2 { font-size: 11pt; font-weight: 700; letter-spacing: .2pt; border-bottom: 1pt solid #111; padding-bottom: 1pt; margin-bottom: 3pt; }
-  .item { margin-top: 3pt; break-inside: avoid; }
+  .item { margin-top: var(--gap-item); break-inside: avoid; }
   .item:first-of-type { margin-top: 0; }
   .row { display: flex; justify-content: space-between; gap: 12pt; }
   .row .when { white-space: nowrap; }
@@ -35,8 +36,8 @@
   .link + small { font-size: 9.4pt; }
   p.profile { text-align: justify; }
 
-  .skills { display: flex; flex-wrap: wrap; gap: 4pt; margin-top: 3pt; }
-  .skills span { border: .9pt solid #111; border-radius: 4pt; padding: 1pt 7pt; }
+  .skill-lines div { margin-top: 0; }
+  .skill-lines { margin-top: var(--gap-item); }
 </style>
 </head>
 <body>
@@ -71,7 +72,7 @@
     <div class="row"><div><b>Data &amp; AI Leadership Program,</b> Acuity Inc.</div><div class="when">July 2025 - November 2026<i>|</i>Atlanta, GA</div></div>
     <ul>
       <li>Built an app that finds SWAP and consolidation opportunities, helping Acuity save millions of dollars a year.</li>
-      <li>Prototyped and tested multiple agentic AI systems, each built as a full-stack application, for a leader in lighting and building technology.</li>
+      <li>Prototyped and tested multiple full-stack agentic AI systems for a leader in lighting and building technology.</li>
       <li>Analyzed and optimized enterprise datasets with millions of records.</li>
     </ul>
   </div>
@@ -97,7 +98,7 @@
   <div class="item">
     <div class="row"><div><b>Independent Code Audit of TLT,</b> Research Paper (IEEE format)</div><div class="when">June 2026 - November 2026</div></div>
     <ul>
-      <li>Wrote a 12-page code audit of TLT, an ASPLOS ’26 method that speeds up reasoning-model RL training 1.7–2.1× without changing results.</li>
+      <li>Wrote a 12-page code audit of TLT (ASPLOS ’26), which speeds up reasoning-model RL training 1.7–2.1× without changing results.</li>
       <li>Traced 11 mechanisms to exact lines of the released code and found 5 code-vs-paper gaps, including a core feature shipped disabled.</li>
       <li>Used Amdahl’s law to show the gains imply a 1.9–2.6× faster rollout, and wrote deployment guidance on cost, setup and monitoring.</li>
     </ul>
@@ -108,7 +109,7 @@
     <ul>
       <li><b>QuadChess:</b> four-player chess on one device or online across four computers over WebRTC, with 234 unit and 43 browser tests.</li>
       <li><b>Mah Jongg Practice:</b> an accessible app for learning American Mah Jongg, with 15 lessons and strategy drills, built for my mom.</li>
-      <li><b>CacheOps:</b> a developer tool that shows what missed prompt caching costs in Claude Code, explains why it happened, and fixes what it can.</li>
+      <li><b>CacheOps:</b> a developer tool that shows what missed prompt caching costs in Claude Code, why it happened, and fixes what it can.</li>
       <li><b>erichibbs.dev:</b> this portfolio as a walkable 3D gallery in Three.js, with click-to-walk and an HTML fallback for every exhibit.</li>
     </ul>
   </div>
@@ -149,8 +150,10 @@
 
 <section>
   <h2>Skills</h2>
-  <div class="skills">
-    <span>Python</span><span>Java</span><span>R</span><span>JavaScript</span><span>TypeScript</span><span>Three.js</span><span>Probability Modeling</span><span>Data Analysis</span><span>Agentic AI</span><span>Algorithms &amp; Data Structures</span><span>HTML/CSS</span><span>Chart.js</span><span>Figma</span><span>UI/UX</span><span>Prototyping</span>
+  <div class="skill-lines">
+    <div><b>Languages:</b> Python, JavaScript, TypeScript, Java, R, HTML/CSS</div>
+    <div><b>AI &amp; Data:</b> Agentic AI, Data Analysis, Probability Modeling, Algorithms &amp; Data Structures, Chart.js</div>
+    <div><b>Product &amp; Design:</b> Figma, UI/UX, Prototyping, Three.js</div>
   </div>
 </section>
 </body>
